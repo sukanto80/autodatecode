@@ -1,8 +1,13 @@
-const puppeteer = require('puppeteer');
+//const puppeteer = require('puppeteer');
 const axios = require('axios');
 const qs = require('qs');
 const { exec } = require('child_process');
-const { HttpsProxyAgent } = require('https-proxy-agent');
+// Import axios-retry
+
+// Set CSRF token  &&  API key
+let csrfToken, apiKey;
+
+csrfToken= apiKey= "H0VvZHtgxl364wy9ouVdhH7OL7joK2iGId8fY0Lu";
 // Import axios-retry
 
 // Set base URL for API requests
@@ -14,14 +19,14 @@ const timeSlotUrl = `${apiBaseUrl}/api/get_payment_options_v2`;
 const payNowUrl = `${apiBaseUrl}/slot_pay_now`;
 
 //Date Release time
-const targetTime = '12:32:30'; // Target time in HH:mm:ss format
+const targetTime = '10:00:01'; // Target time in HH:mm:ss format
 
 // data info variables
-var expected_date="2024-10-15";
+var expected_date="2024-10-17";
 var web_file="BGDDW1477724";
 var applicant_name="SHAHARIAR HOSSAIN MUKUL";
-var mobile="01829006154";
-var email= "sukantomukherjee80@gmail.com";
+var mobile="01624389711";
+var email= "pakkna@gmail.com";
 var my_visa_type= "ENTRY VISA" //"ENTRY VISA"
 
 // funtion processing Variable;
@@ -41,11 +46,8 @@ let payNowtimeoutId = null;
 let lastSlotRequestTime = null;
 let checkOtpVerfied=false;
 let resendOtp=0;
-let proxySetup=false;
-let lastProxyHeader=null;
+let ReceivedOTP=null;
 
-// Set CSRF token  &&  API key
-let csrfToken, apiKey;
 
 // VIsa Type array of objects
 const VisaTypeArray = [
@@ -61,6 +63,7 @@ let filesInfo ={
         {
             web_id: web_file,
             web_id_repeat: web_file,
+            passport: "",
             name: applicant_name,
             phone: mobile,
             email: email,
@@ -74,8 +77,8 @@ let filesInfo ={
             },
             is_open: "true",
             ivac: {
-                id: "17",
-                center_info_id: "1",
+                id: 17,
+                center_info_id: 1,
                 ivac_name: "IVAC, Dhaka (JFP)",
                 address: "Jamuna Future Park",
                 prefix: "D",
@@ -84,9 +87,13 @@ let filesInfo ={
                 charge: "3",
                 new_visa_fee: "800.00",
                 old_visa_fee: "800.00",
+                notify_fees_from: "2018-07-29 04:54:32",
+                allow_old_amount_until_new_date: 2,
+                max_notification_count: 2,
             },
             visa_type: getObjectByName(my_visa_type, VisaTypeArray),
-            confirm_tos: "true"
+            confirm_tos: "true",
+            otp:null,
         }
     ],
 };
@@ -141,62 +148,77 @@ function updateStatusMessage(id,message,color=null) {
     
 }
 
-    // start to get token and api key by Browser
-    (async () => {
-        const browser = await puppeteer.launch({ headless: true });
-        const page = await browser.newPage();
-       
-        let errorMessages = ""; // Variable to store error messages
+    // Function to get current time in Bangladesh Time
+function getBangladeshTime() {
+        const options = {
+            timeZone: 'Asia/Dhaka', // Set to Bangladesh time zone
+            hour12: false // Use 24-hour time format
+        };
     
-        console.log("====== STARTING To RETRIEVE CSRF Token & API Key ======\n");
-        console.log("Attempting to retrieve CSRF token and API key...\n");
+        // Get the current date in the specified timezone
+        const date = new Date();
     
-        while (true) {
-            try {
-                console.log("Step 1: Waiting for the server response...");
-    
-                // Navigate to the URL
-                const response = await page.goto('https://payment.ivacbd.com/', { waitUntil: 'networkidle2' });
-                console.log("Step 2: Server responded.\n");
-    
-                // Get CSRF token
-                const csrfToken = await page.evaluate(() => window.csrf_token);
-    
-                // Get apiKey from AngularJS filesInfo
-                const apiKey = await page.evaluate(() => {
-                    var scopeElement = angular.element(document.querySelector('[ng-controller="payment_application"]'));
-                    var scope = scopeElement.scope();
-                    return scope.apiKey;
-                });
-    
-                if (csrfToken && apiKey) {
-                    console.clear(); // Clear the console including any previous errors
-                    console.log("====== STARTING To RETRIEVE CSRF Token & API Key ======\n");
-                    console.log(`Step 3: CSRF Token : ${csrfToken}\n`);
-                    console.log(`Step 4: API Key : ${apiKey}\n`);
-                    console.log("====== CSRF TOKEN & API KEY SUCCESSFULLY RETRIEVED ======");
-                    break; // Exit the loop once both values are retrieved
-                } else {
-                    throw new Error('CSRF token or API key not found.');
-                }
-    
-            } catch (error) {
-                errorMessages += `Attempt failed. Error: ${error.message}.\n`; // Append errors to errorMessages
-                console.clear(); // Clear previous logs
-                console.log(errorMessages); // Show accumulated error messages
-                console.log("Retrying in 2 seconds...\n");
-                await new Promise(resolve => setTimeout(resolve, 5000)); // Wait for 2 seconds before retrying
-            }
-        }
-    
-        // Close the browser after successful retrieval
-        await browser.close();
-    
-        // Wait for user input to proceed
-        await new Promise(resolve => process.stdin.once('data', resolve));
-        scheduleOtpRequest(targetTime);
+        // Get the time string formatted as HH:mm:ss
+        return date.toLocaleTimeString('en-US', options);
+ }
 
-    })();
+    // // start to get token and api key by Browser
+    // (async () => {
+    //     const browser = await puppeteer.launch({ headless: true });
+    //     const page = await browser.newPage();
+       
+    //     let errorMessages = ""; // Variable to store error messages
+    
+    //     console.log("====== STARTING To RETRIEVE CSRF Token & API Key ======\n");
+    //     console.log("Attempting to retrieve CSRF token and API key...\n");
+    
+    //     while (true) {
+    //         try {
+    //             console.log("Step 1: Waiting for the server response...");
+    
+    //             // Navigate to the URL
+    //             const response = await page.goto('https://payment.ivacbd.com/', { waitUntil: 'networkidle2' });
+    //             console.log("Step 2: Server responded.\n");
+    
+    //             // Get CSRF token
+    //             const csrfToken = await page.evaluate(() => window.csrf_token);
+    
+    //             // Get apiKey from AngularJS filesInfo
+    //             const apiKey = await page.evaluate(() => {
+    //                 var scopeElement = angular.element(document.querySelector('[ng-controller="payment_application"]'));
+    //                 var scope = scopeElement.scope();
+    //                 return scope.apiKey;
+    //             });
+    
+    //             if (csrfToken && apiKey) {
+    //                 console.clear(); // Clear the console including any previous errors
+    //                 console.log("====== STARTING To RETRIEVE CSRF Token & API Key ======\n");
+    //                 console.log(`Step 3: CSRF Token : ${csrfToken}\n`);
+    //                 console.log(`Step 4: API Key : ${apiKey}\n`);
+    //                 console.log("====== CSRF TOKEN & API KEY SUCCESSFULLY RETRIEVED ======");
+    //                 break; // Exit the loop once both values are retrieved
+    //             } else {
+    //                 throw new Error('CSRF token or API key not found.');
+    //             }
+    
+    //         } catch (error) {
+    //             errorMessages += `Attempt failed. Error: ${error.message}.\n`; // Append errors to errorMessages
+    //             console.clear(); // Clear previous logs
+    //             console.log(errorMessages); // Show accumulated error messages
+    //             console.log("Retrying in 2 seconds...\n");
+    //             await new Promise(resolve => setTimeout(resolve, 5000)); // Wait for 2 seconds before retrying
+    //         }
+    //     }
+    
+    //     // Close the browser after successful retrieval
+    //     await browser.close();
+    
+    //     // Wait for user input to proceed
+    //     await new Promise(resolve => process.stdin.once('data', resolve));
+    //     scheduleOtpRequest(targetTime);
+       
+
+    // })();
 
 
 
@@ -224,8 +246,7 @@ async function FinalPayNowV2Request() {
 
         isFinalPayNowRequestInProgress = false;
 
-        const xAmzCfPop = response.headers['x-amz-cf-pop'];
-        console.log('server-pop:', xAmzCfPop);
+        updateStatusMessage('finalPayMSG',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' );
 
         if (resp.status ===	"FAIL") {
 
@@ -235,12 +256,10 @@ async function FinalPayNowV2Request() {
                 updateStatusMessage('finalPayMSG',error_reason);
             }else{
                 updateStatusMessage('finalPayMSG',error_reason);
-                payNowtimeoutId = setTimeout(FinalPayNowV2Request, 500);
+                payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
             }
 
         }else if (resp.status !=="FAIL") {
-            
-            updateStatusMessage('otpSendMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' );
 
             if(typeof resp.data?.status !== 'undefined'){
                  
@@ -250,33 +269,31 @@ async function FinalPayNowV2Request() {
                         
                         if(typeof resp.data?.order_id !== 'undefined'){
                           
-                            updateStatusMessage('finalPayMSG','Payment Url & OrderId: '+resp.data.order_id +' Found Successfully','\x1b[32m%s\x1b[0m' );
+                            updateStatusMessage('finalPayMSG','Payment OrderId: '+resp.data.order_id +' Found Successfully','\x1b[32m%s\x1b[0m' );
                 
                             //localStorage.setItem('last_order_id', resp.data.order_id);
                         }
-                        updateStatusMessage('finalPayMSG',resp.data.url+filesInfo.selected_payment.slug,'\x1b[34m\x1b[4m');
-                        openLink(resp.data.url+filesInfo.selected_payment.slug);
+                        updateStatusMessage('finalPayMSG URL',resp.data.url+selected_payment.slug,'\x1b[34m\x1b[4m');
+                        openLink(resp.data.url+selected_payment.slug);
                 }else{
                     updateStatusMessage('finalPayMSG','Payment gateway not running right now.Resending..');
-                    payNowtimeoutId = setTimeout(FinalPayNowV2Request, 500);
+                    payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
                 }        
 
             }else{
+               
                 updateStatusMessage('finalPayMSG','Failed to verify response data! Resending Request...');
-                payNowtimeoutId = setTimeout(FinalPayNowV2Request, 500);
+                payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
             }   
 
         }else{
             updateStatusMessage('finalPayMSG','Response data invalid! Resending Request...');
-            payNowtimeoutId = setTimeout(FinalPayNowV2Request, 500);
+            payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
         }
-        
-        lastProxyHeader=ProxyHeader;
+
         
     } catch (error) {
         isFinalPayNowRequestInProgress = false;
-        proxySetup=true;
-        lastProxyHeader==null;
         if(error.response){
             if (error.response.status === 504|| error.response.status === 502) {  // Gateway timeout
                 updateStatusMessage('finalPayMSG', 'Gateway timeout! Resending Request');
@@ -284,7 +301,7 @@ async function FinalPayNowV2Request() {
                 updateStatusMessage('finalPayMSG', 'An error occurred: ' + error.message);
             }
         }
-        payNowtimeoutId = setTimeout(FinalPayNowV2Request, 500);
+        payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
     }
 }
 
@@ -293,6 +310,11 @@ async function getDateTimeSlotRequest() {
 
     if (isSlotTimeRequestInProgress) {
         updateStatusMessage('timeSlotMsg', 'Request in progress, waiting for completion...');
+        return;
+    }
+
+    if (checkGetTimeSlot) {
+        updateStatusMessage('timeSlotMsg','Already Selected:'+selected_slot);
         return;
     }
 
@@ -314,28 +336,26 @@ async function getDateTimeSlotRequest() {
         const resp = response.data;
 
         isSlotTimeRequestInProgress = false;
-        const xAmzCfPop = response.headers['x-amz-cf-pop'];
-        console.log('server-pop:', xAmzCfPop);
-        
+
             if (resp.status=='OK' && resp.slot_times.length===0) {
+
                  updateStatusMessage('timeSlotMsg', 'Time slot not available in this time.Resending...');
-                 dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, 500);
+                 dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, 100);
             }else if(resp.slot_times.length!==0){
 
-                    var appointment_time = JSON.stringify(resp.slot_times[0]);
-                    selected_slot = JSON.parse(appointment_time);
+                    selected_slot = resp.slot_times[0];
                     filesInfo.payment[0].appointment_time = selected_slot.hour;
                     
-                   checkGetTimeSlot = true;
-                   getTimeSlotIsLoading = false;
+                    checkGetTimeSlot = true;
+                    getTimeSlotIsLoading = false;
                 
-                    updateStatusMessage('otpSendMsg','Time slot found successfully [' + selected_slot.time_display+']');
-    
-                    updateStatusMessage('otpSendMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' );
+                    console.log("Selected Slot: "+selected_slot);
+                    updateStatusMessage('timeSlotMsg','Time slot found successfully [' + selected_slot.time_display+']');
+                    
 
             }else{
                 updateStatusMessage('timeSlotMsg', 'Time Slot is Empty! Resending Request...');
-                dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, 500);
+                dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, 100);
             }    
 
     } catch (error) {
@@ -345,18 +365,18 @@ async function getDateTimeSlotRequest() {
             if (error.response.status === 504|| error.response.status === 502) {  // Gateway timeout
                 updateStatusMessage('timeSlotMsg', 'Gateway timeout! Resending Request');
             } else {
-                updateStatusMessage('otpSendMsg', 'An error occurred: ' + error.message);
+                updateStatusMessage('timeSlotMsg', 'An error occurred: ' + error.message);
             }
         }   
         
-        dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, 500);
+        dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, 100);
     }
 }
 
 // Function to handle OTP verification
 async function sendVerifyOtpRequest() {
     if (isOtpVerifyRequestInProgress) {
-        updateStatusMessage('otpSendMsg','OTP Verify Request in progress, please wait...');
+        updateStatusMessage('otpVerifyMsg','OTP Verify Request in progress, please wait...');
         return;
     }
 
@@ -367,10 +387,10 @@ async function sendVerifyOtpRequest() {
         apiKey: apiKey,
         action: 'verifyOtp',
         info: filesInfo.payment,
-        otp: filesInfo.payment[0].otp,
+        otp: ReceivedOTP,
     });
 
-
+    console.log(otpVerifyData);
     try {
         // Send POST request with Axios
         const response = await axios.post(otpSendUrl, otpVerifyData, axiosConfig);
@@ -378,76 +398,75 @@ async function sendVerifyOtpRequest() {
         const resp = response.data;
 
         isOtpVerifyRequestInProgress = false;
-        const xAmzCfPop = response.headers['x-amz-cf-pop'];
-        console.log('server-pop:', xAmzCfPop);
 
         if (resp.status ===	"FAILED") {
-
+            
+            updateStatusMessage('otpVerifyMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
             var error_reason=resp.data.error_reason;
-        
-            if (error_reason=="Mobile no is not verified with this requested webfiles" || error_reason=="OTP not found with this mobile number" ||  error_reason=="OTP expired. Please try again") {
 
-                if(filesInfo.payment[0].otp.length == 6){
-                    updateStatusMessage('otpSendMsg',error_reason+'.Resending...');
+            if (error_reason=="Mobile no is not verified with this requested webfiles" || error_reason=="OTP not found with this mobile number" ||  error_reason=="OTP expired. Please try again" || error_reason=="OTP does not match. Please try again") {
+               
+                if(ReceivedOTP.length == 6){
+                    updateStatusMessage('otpVerifyMsg',error_reason+'.Resending...');
                     clearTimeout(timeoutId);
                     filesInfo.payment[0].otp=null;
-                    resendOtp++;
+                    ReceivedOTP=null;
+                    resendOtp=1;
                     sendOtpPostRequest();
                 }else{
-                    updateStatusMessage('otpVerify','Otp length is not valid.Fetching New OTP...');
-                    if (filesInfo.payment[0].otp==null) {
+                    updateStatusMessage('otpVerifyMsg','Otp length is not valid.Fetching New OTP...');
+
+                    if (ReceivedOTP==null && ReceivedOTP.length != 6) {
                         timeoutId = setTimeout(getOtpFromApi, 1000);
                     }
                 } 
             }else if(error_reason=='Slot is not available'){
-                updateStatusMessage('otpVerify',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
+                updateStatusMessage('otpVerifyMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
+                updateStatusMessage('otpVerifyMsg','Slot is not available.Sending New OTP...');
+                sendOtpPostRequest();
                 
             }else{
-                updateStatusMessage('otpVerify',error_reason);
-                timeoutId = setTimeout(sendVerifyOtpRequest, 500);
+                updateStatusMessage('otpVerifyMsg',error_reason);
+                timeoutId = setTimeout(sendVerifyOtpRequest, 100);
             }
 
         }else if (resp.status !=="FAILED") {
             
-            var DateSlots= resp.data.slot_dates;
-            updateStatusMessage('otpVerify',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' );
+            updateStatusMessage('otpVerifyMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' );
 
-                if (DateSlots.length!==0) {
-                    filesInfo.appointment_date =DateSlots[0];
-                    filesInfo.payment[0].appointment_time = DateSlots[0];
-                    updateStatusMessage('otpVerify','OTP Verified Successfully.','\x1b[32m%s\x1b[0m');
+             // var DateSlots= resp.data.slot_dates;
+           
+                if (expected_date.length!==0) {
+                    filesInfo.appointment_date = expected_date; //DateSlots[0];
+                    updateStatusMessage('otpVerifyMsg','OTP Verified Successfully.','\x1b[32m%s\x1b[0m');
                    
                     if (checkGetTimeSlot) {
                         clearTimeout(timeoutId);
-                        updateStatusMessage('finalPayMSG','Sending final PayNow request....');
+                        updateStatusMessage('otpVerifyMsg','Sending final PayNow request....');
                         FinalPayNowV2Request();
                     }
                 }else{
-                    updateStatusMessage('otpVerify','fetched slots: '+DateSlots);
-                    timeoutId = setTimeout(sendVerifyOtpRequest, 500);
+                    updateStatusMessage('otpVerifyMsg','fetched slots: '+DateSlots);
+                    timeoutId = setTimeout(sendVerifyOtpRequest, 100);
                 }
 
         }else{
-            updateStatusMessage('otpVerify','Failed to connect verify otp! Resending Request...');
-            timeoutId = setTimeout(sendVerifyOtpRequest, 500);
+            updateStatusMessage('otpVerifyMsg','Failed to connect verify otp! Resending Request...');
+            timeoutId = setTimeout(sendVerifyOtpRequest, 100);
         } 
         
-        lastProxyHeader=ProxyHeader;
         
     } catch (error) {
         isOtpVerifyRequestInProgress = false;
-        proxySetup=true;
-        lastProxyHeader==null;
-
         if(error.response){
             if (error.response.status === 504|| error.response.status === 502) {  // Gateway timeout
-                updateStatusMessage('otpVerify', 'Gateway timeout! Resending Request');
+                updateStatusMessage('otpVerifyMsg', 'Gateway timeout! Resending Request');
             } else {
-                updateStatusMessage('otpVerify', 'An error occurred: ' + error.message);
+                updateStatusMessage('otpVerifyMsg', 'An error occurred: ' + error.message);
                 console.log('Error:', error.message);
             }
         }
-        timeoutId = setTimeout(sendVerifyOtpRequest, 500);
+        timeoutId = setTimeout(sendVerifyOtpRequest, 100);
       
     }
 }
@@ -460,14 +479,13 @@ async function sendOtpPostRequest() {
     }
 
     isOtpRequestInProgress = true;
-    proxySetup=true;
 
     const OtpSendPostData =  qs.stringify({
         _token: csrfToken,
         apiKey: apiKey,
         action: 'sendOtp',
         info: filesInfo.payment,
-        resend: 0,
+        resend: resendOtp,
     });
 
     try {
@@ -476,32 +494,30 @@ async function sendOtpPostRequest() {
 
         const resp = response.data;
         isOtpRequestInProgress = false;
-        const xAmzCfPop = response.headers['x-amz-cf-pop'];
-        console.log('server-pop:', xAmzCfPop);
           
+    
         // Handle different response scenarios
         if (resp.status === "FAILED" && resp.code === 422) {
            updateStatusMessage('otpSendMsg', 'Slot is not available to send OTP. Retrying...');
-           timeoutId = setTimeout(sendOtpPostRequest, 500);
+           timeoutId = setTimeout(sendOtpPostRequest, 100);
 
-        } else if (resp.status !== "FAILED" && resp.code === 200) {
+        } else if (resp.status == "SUCCESS" && resp.code === 200) {
+
             updateStatusMessage('otpSendMsg', 'OTP Sent Successfully. Finding OTP....','\x1b[32m%s\x1b[0m');
             updateStatusMessage('otpSendMsg',JSON.stringify(resp, null, 2),'\x1b[34m%s\x1b[0m' ); //log response data
             
+            //Stop sending Request
+            clearTimeout(timeoutId);
            // Function to get OTP from API
             getOtpFromApi();  
 
         } else {
-            timeoutId = setTimeout(sendOtpPostRequest, 500);
+            timeoutId = setTimeout(sendOtpPostRequest, 100);
             updateStatusMessage('otpSendMsg',  resp.data.error_reason);
         }
 
-        lastProxyHeader=ProxyHeader;
-
     } catch (error) {
         isOtpRequestInProgress = false;
-        proxySetup=true;
-        lastProxyHeader==null;
         if(error.response){
             if (error.response.status === 504|| error.response.status === 502) {  // Gateway timeout
                 updateStatusMessage('otpSendMsg', 'Gateway timeout! Resending Request');
@@ -511,7 +527,7 @@ async function sendOtpPostRequest() {
                 console.log('Error:', error.message);
         }
        
-        timeoutId = setTimeout(sendOtpPostRequest, 500);
+        timeoutId = setTimeout(sendOtpPostRequest, 100);
     }
 }
 // Function to get OTP from API using axios
@@ -531,27 +547,31 @@ async function getOtpFromApi() {
         // Handle the successful response
         const resp = response.data;
         isGetOtpRequestInProgress = false;
-
+        
         if (resp.success && resp.data.otp !== '') {
 
             if (resp.data.otp.length == 6) {
                 filesInfo.payment[0].otp = resp.data.otp;
+                ReceivedOTP=resp.data.otp;
                 isOtpReceived = true;
+                clearTimeout(fetchOtpTimeoutId);
+
                 sendVerifyOtpRequest();
                 // Display success message
+
                 updateStatusMessage('OTPGet','OTP Received Successfully. OTP Received: ' + resp.data.otp,'\x1b[32m%s\x1b[0m');
             } else {
                 // Handle invalid OTP
                 updateStatusMessage('OTPGet','OTP Received Successfully. OTP Invalid: ' + resp.data.otp);
 
-                if (filesInfo.payment[0].otp == null) {
+                if (filesInfo.payment[0].otp == null || ReceivedOTP==null) {
                     fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1000);
                 }
             }
 
         } else {
             updateStatusMessage('OTPGet','OTP is empty or undefined. Retrying...');
-            if (filesInfo.payment[0].otp== null) {
+            if (filesInfo.payment[0].otp== null || ReceivedOTP==null) {
                 fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1000);
             }
         }
@@ -559,24 +579,9 @@ async function getOtpFromApi() {
     } catch (error) {
         // Handle error
         isGetOtpRequestInProgress = false;
-        updateStatusMessage('OTPGet','Error fetching OTP. Retrying...');
+        updateStatusMessage('OTPGet','Error fetching OTP. Retrying...'+error);
         fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1000); // Retry after 1 second
-    }
-}
-
-
-// Function to get current time in Bangladesh Time
-function getBangladeshTime() {
-    const options = {
-        timeZone: 'Asia/Dhaka', // Set to Bangladesh time zone
-        hour12: false // Use 24-hour time format
-    };
-    
-    // Get the current date in the specified timezone
-    const date = new Date();
-    
-    // Get the time string formatted as HH:mm:ss
-    return date.toLocaleTimeString('en-US', options);
+    }   
 }
 
 // Function to check the time and call sendOtpPostRequest if it's 10:00:01 AM BDT
@@ -600,3 +605,5 @@ async function scheduleOtpRequest(targetTime) {
     }, 1000); // Check every second
 }
 
+//scheduleOtpRequest(targetTime);
+getOtpFromApi();

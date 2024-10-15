@@ -2,7 +2,7 @@
   "name": "proxy-project",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "execute.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -13,7 +13,6 @@
     "axios": "^1.7.7",
     "https-proxy-agent": "^7.0.5",
     "node-cache": "^5.1.2",
-    "puppeteer": "^23.5.3",
     "qs": "^6.13.0",
     "request": "^2.88.2",
     "request-promise": "^4.2.6"
