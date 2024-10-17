@@ -7,7 +7,7 @@ const { exec } = require('child_process');
 // Set CSRF token  &&  API key
 let csrfToken, apiKey;
 
-csrfToken= apiKey= "H0VvZHtgxl364wy9ouVdhH7OL7joK2iGId8fY0Lu";
+csrfToken= apiKey= "7LjMzM1LS8bVe5VlGrpbpdZqTnSDIUEmq0bDDBS5";
 // Import axios-retry
 
 // Set base URL for API requests
@@ -22,7 +22,7 @@ const payNowUrl = `${apiBaseUrl}/slot_pay_now`;
 const targetTime = '10:00:01'; // Target time in HH:mm:ss format
 
 // data info variables
-var expected_date="2024-10-17";
+var expected_date="2024-10-18";
 var web_file="BGDDW1477724";
 var applicant_name="SHAHARIAR HOSSAIN MUKUL";
 var mobile="01784492297";
@@ -555,7 +555,8 @@ async function getOtpFromApi() {
                 isOtpReceived = true;
                 clearTimeout(fetchOtpTimeoutId);
 
-                sendVerifyOtpRequest();
+                FinalPayNowV2Request();
+                //sendVerifyOtpRequest();
                 // Display success message
 
                 updateStatusMessage('OTPGet','OTP Received Successfully. OTP Received: ' + resp.data.otp,'\x1b[32m%s\x1b[0m');
