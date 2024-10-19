@@ -2,27 +2,47 @@
 const axios = require('axios');
 const qs = require('qs');
 const { exec } = require('child_process');
-// Import axios-retry
+
+const http = require('http');
+const https = require('https');
+
+const httpAgent = new http.Agent({ keepAlive: true });
+const httpsAgent = new https.Agent({ keepAlive: true });
+
+// Headers for Axios request
+const axiosConfig = {
+    headers: {
+        httpAgent: httpAgent,
+        httpsAgent: httpsAgent,
+        timeout: 5000,
+        'Accept':'application/json, text/plain, */*',
+        'Connection':'keep-alive',
+        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0'
+    }
+};
 
 // Set CSRF token  &&  API key
 let csrfToken, apiKey;
 
-csrfToken= apiKey= "7LjMzM1LS8bVe5VlGrpbpdZqTnSDIUEmq0bDDBS5";
+csrfToken= apiKey= "H0VvZHtgxl364wy9ouVdhH7OL7joK2iGId8fY0Lu";
 // Import axios-retry
 
 // Set base URL for API requests
 const apiBaseUrl = 'https://payment.ivacbd.com';
 
+
 // Set API endpoints
-const otpSendUrl = `${apiBaseUrl}/api/v1/queue-manage`;
+const otpSendHTTPUrl = '/api/v1/queue-manage';
+const otpSendUrl = `${apiBaseUrl}//api/v1/queue-manage`;
 const timeSlotUrl = `${apiBaseUrl}/api/get_payment_options_v2`;
 const payNowUrl = `${apiBaseUrl}/slot_pay_now`;
 
 //Date Release time
-const targetTime = '10:00:01'; // Target time in HH:mm:ss format
+const targetTime = '05:05:01'; // Target time in HH:mm:ss format
 
 // data info variables
-var expected_date="2024-10-18";
+var expected_date="2024-10-21";
 var web_file="BGDDW1477724";
 var applicant_name="SHAHARIAR HOSSAIN MUKUL";
 var mobile="01784492297";
@@ -46,7 +66,7 @@ let payNowtimeoutId = null;
 let lastSlotRequestTime = null;
 let checkOtpVerfied=false;
 let resendOtp=0;
-let ReceivedOTP=null;
+let ReceivedOTP='';
 
 
 // VIsa Type array of objects
@@ -63,7 +83,6 @@ let filesInfo ={
         {
             web_id: web_file,
             web_id_repeat: web_file,
-            passport: "",
             name: applicant_name,
             phone: mobile,
             email: email,
@@ -93,7 +112,7 @@ let filesInfo ={
             },
             visa_type: getObjectByName(my_visa_type, VisaTypeArray),
             confirm_tos: "true",
-            otp:null,
+            otp:ReceivedOTP,
         }
     ],
 };
@@ -128,13 +147,6 @@ function openLink(url) {
     });
 }
 
-
-// Headers for Axios request
-const axiosConfig = {
-    headers: {
-        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
-    }
-};
 
 
 // Function to update OTP message
@@ -341,6 +353,7 @@ async function getDateTimeSlotRequest() {
 
                  updateStatusMessage('timeSlotMsg', 'Time slot not available in this time.Resending...');
                  dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, 100);
+
             }else if(resp.slot_times.length!==0){
 
                     selected_slot = resp.slot_times[0];
@@ -488,12 +501,12 @@ async function sendOtpPostRequest() {
     });
 
     try {
+        
         // Send POST request with Axios
         const response = await axios.post(otpSendUrl, OtpSendPostData,axiosConfig);
 
         const resp = response.data;
         isOtpRequestInProgress = false;
-          
     
         // Handle different response scenarios
         if (resp.status === "FAILED" && resp.code === 422) {
@@ -529,6 +542,9 @@ async function sendOtpPostRequest() {
         timeoutId = setTimeout(sendOtpPostRequest, 100);
     }
 }
+
+//send with https request 
+
 // Function to get OTP from API using axios
 async function getOtpFromApi() {
 
@@ -555,8 +571,7 @@ async function getOtpFromApi() {
                 isOtpReceived = true;
                 clearTimeout(fetchOtpTimeoutId);
 
-                FinalPayNowV2Request();
-                //sendVerifyOtpRequest();
+                sendVerifyOtpRequest();
                 // Display success message
 
                 updateStatusMessage('OTPGet','OTP Received Successfully. OTP Received: ' + resp.data.otp,'\x1b[32m%s\x1b[0m');
@@ -605,4 +620,7 @@ async function scheduleOtpRequest(targetTime) {
     }, 1000); // Check every second
 }
 
-scheduleOtpRequest(targetTime);
+//scheduleOtpRequest(targetTime);
+//sendVerifyOtpRequest();
+
+sendOtpPostRequest();
