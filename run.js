@@ -6,7 +6,7 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 
-const cacheFilePath = './timeslotcache.json'; // The cache file path
+const cacheFilePath = './timeslotcache.txt'; // The cache file path
 
 const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
