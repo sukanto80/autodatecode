@@ -2,9 +2,11 @@
 const axios = require('axios');
 const qs = require('qs');
 const { exec } = require('child_process');
-
 const http = require('http');
 const https = require('https');
+const fs = require('fs');
+
+const cacheFilePath = './timeslotcache.json'; // The cache file path
 
 const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
@@ -39,13 +41,13 @@ const timeSlotUrl = `${apiBaseUrl}/api/get_payment_options_v2`;
 const payNowUrl = `${apiBaseUrl}/slot_pay_now`;
 
 //Date Release time
-const targetTime = '05:05:01'; // Target time in HH:mm:ss format
+const targetTime = '10:00:00'; // Target time in HH:mm:ss format
 
 // data info variables
 var expected_date="2024-10-21";
 var web_file="BGDDW1477724";
 var applicant_name="SHAHARIAR HOSSAIN MUKUL";
-var mobile="01784492297";
+var mobile="01829006154";
 var email= "pakkna@gmail.com";
 var my_visa_type= "ENTRY VISA" //"ENTRY VISA"
 
@@ -125,7 +127,16 @@ let selected_payment={
     link: "https://securepay.sslcommerz.com/gwprocess/v4/image/gw1/bkash.png",
   };
 
-let selected_slot={};
+let selected_slot={};  
+
+const cachedResponse = readFromTxtFile();
+
+  if (cachedResponse) {
+    selected_slot= cachedResponse;
+    checkGetTimeSlot=true;
+  } else {
+    selected_slot= {};
+  }
 
 
 // Function to get an object by name
@@ -354,14 +365,19 @@ async function getDateTimeSlotRequest() {
                  updateStatusMessage('timeSlotMsg', 'Time slot not available in this time.Resending...');
                  dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, 100);
 
-            }else if(resp.slot_times.length!==0){
+            }else if(resp.status=='OK' && resp.slot_times.length!==0){
+
+                updateStatusMessage('timeSlotMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
 
                     selected_slot = resp.slot_times[0];
                     filesInfo.payment[0].appointment_time = selected_slot.hour;
                     
                     checkGetTimeSlot = true;
                     getTimeSlotIsLoading = false;
-                
+
+                    // Function to write the string data to a text file
+                    fs.writeFileSync(cacheFilePath, selected_slot, 'utf-8');
+
                     console.log("Selected Slot: "+selected_slot);
                     updateStatusMessage('timeSlotMsg','Time slot found successfully [' + selected_slot.time_display+']');
                     
@@ -620,7 +636,18 @@ async function scheduleOtpRequest(targetTime) {
     }, 1000); // Check every second
 }
 
-//scheduleOtpRequest(targetTime);
+scheduleOtpRequest(targetTime);
 //sendVerifyOtpRequest();
 
-sendOtpPostRequest();
+//sendOtpPostRequest();
+
+function readFromTxtFile() {
+    try {
+        const data = fs.readFileSync(cacheFilePath, 'utf-8');
+        const parsedData = JSON.parse(data); // Parse the string back to JSON
+        return parsedData;
+    } catch (err) {
+        console.error('Error reading or parsing the file:', err);
+        return null;
+    }
+}
