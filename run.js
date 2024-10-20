@@ -644,7 +644,7 @@ scheduleOtpRequest(targetTime);
 function readFromTxtFile() {
     try {
         const data = fs.readFileSync(cacheFilePath, 'utf-8');
-        const parsedData = JSON.parse(data); // Parse the string back to JSON
+        const parsedData = data; // Parse the string back to JSON
         return parsedData;
     } catch (err) {
         console.error('Error reading or parsing the file:', err);
