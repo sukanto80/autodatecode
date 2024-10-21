@@ -41,10 +41,10 @@ const timeSlotUrl = `${apiBaseUrl}/api/get_payment_options_v2`;
 const payNowUrl = `${apiBaseUrl}/slot_pay_now`;
 
 //Date Release time
-const targetTime = '10:00:00'; // Target time in HH:mm:ss format
+const targetTime = '18:00:01'; // Target time in HH:mm:ss format
 
 // data info variables
-var expected_date="2024-10-21";
+var expected_date="2024-10-22";
 var web_file="BGDDW1477724";
 var applicant_name="SHAHARIAR HOSSAIN MUKUL";
 var mobile="01829006154";
@@ -68,7 +68,7 @@ let payNowtimeoutId = null;
 let lastSlotRequestTime = null;
 let checkOtpVerfied=false;
 let resendOtp=0;
-let ReceivedOTP='';
+let ReceivedOTP="";
 
 
 // VIsa Type array of objects
