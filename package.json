@@ -1,6 +1,7 @@
 {
   "name": "proxy-project",
   "version": "1.0.0",
+  "type": "module",
   "description": "",
   "main": "run.js",
   "scripts": {
@@ -13,6 +14,7 @@
     "axios": "^1.7.7",
     "http": "^0.0.1-security",
     "https": "^1.0.0",
+    "https-proxy-agent": "^7.0.5",
     "fs": "^0.0.1-security",
     "qs": "^6.13.0",
     "request": "^2.88.2",
