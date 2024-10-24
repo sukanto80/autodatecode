@@ -241,6 +241,7 @@ const FinalPayNowV2Request = async()=>{
                 console.log('Error:', error.message);
             }
         }
+        updateStatusMessage('finalPayMSG', 'Final pay request server error. Resending request....');
         payNowtimeoutId = setTimeout(FinalPayNowV2Request, 300);
     }
 }
@@ -319,7 +320,7 @@ const getDateTimeSlotRequest = async()=>{
                 console.log('Error:', error.message);
             }
         }
-        updateStatusMessage('timeSlotMsg', 'Resending time slot request ....');
+        updateStatusMessage('timeSlotMsg', 'Time slot request server error. Resending request....');
         setProcessTimeoutId = setTimeout(getDateTimeSlotRequest, 300);
         setProcessTimeouts.push(setProcessTimeoutId);
     }
@@ -415,6 +416,7 @@ const sendVerifyOtpRequest = async()=> {
                 console.log('Error:', error.message);
             }
         }
+        updateStatusMessage('otpVerifyMsg', 'OTPVerify request  Server Error.resending....');
         timeoutId = setTimeout(sendVerifyOtpRequest, 200);
       
     }
@@ -482,10 +484,9 @@ const sendOtpPostRequest = async() => {
                 updateStatusMessage('otpSendMsg',error.response.status + ' Gateway timeout! Resending Request');
             }else{
                 updateStatusMessage('otpSendMsg', 'An error occurred: ' + error.message);
-                console.log('Error:', error.message);
             }
-        }    
-        
+        }
+        updateStatusMessage('otpSendMsg', 'OTP send request Server Error.resending....');
         timeoutId = setTimeout(sendOtpPostRequest, 200);
     }
 }
@@ -574,9 +575,7 @@ const sendBatchedRequests = async (sendRequest)=>{
 
 
  // date selection request
-//sendBatchedRequests(getDateTimeSlotRequest);
-
-getDateTimeSlotRequest();
+sendBatchedRequests(getDateTimeSlotRequest);
  //otp send request
 sendOtpPostRequest();
 
