@@ -35,8 +35,8 @@ const apiBaseUrl = 'https://payment.ivacbd.com';
 
 
 // Set API endpoints
-const otpSendUrl = `${apiBaseUrl}//api/v1/queue-manage`;
-const timeSlotUrl = `${apiBaseUrl}/api/get_payment_options_v2`;
+const otpSendUrl = `${apiBaseUrl}/queue-manage`;
+const timeSlotUrl = `${apiBaseUrl}/get_payment_options_v2`;
 const payNowUrl = `${apiBaseUrl}/slot_pay_now`;
 
 const today = new Date();
