@@ -574,7 +574,9 @@ const sendBatchedRequests = async (sendRequest)=>{
 
 
  // date selection request
-sendBatchedRequests(getDateTimeSlotRequest);
+//sendBatchedRequests(getDateTimeSlotRequest);
+
+getDateTimeSlotRequest();
  //otp send request
 sendOtpPostRequest();
 
