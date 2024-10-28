@@ -180,7 +180,7 @@ filesInfo.payment[0].appointment_time = expected_date;
 filesInfo.payment[0].otp = ReceivedOTP;
 
 
-scope.selected_payment={
+let selected_payment={
     name: "Bkash",
     slug: "bkash",
     grand_total: application.length * 800 + application.length*24,
