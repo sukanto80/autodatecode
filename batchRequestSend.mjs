@@ -1,34 +1,67 @@
+
 import axios from 'axios';
 import qs from 'qs';
 import { exec } from 'child_process';
 import https from 'https';
 import fs from 'fs';
 
-// Apply the HTTP/2 adapter globally for Axios
-//axios.defaults.adapter = http2Adapter;
-
-const agent = new https.Agent({
-      keepAlive: true,           // Keep connection alive
-      maxSockets: 10,            // Allow up to 10 concurrent sockets (requests)
-      maxFreeSockets: 5,         // Allow up to 5 idle sockets to remain open
-      keepAliveMsecs: 50000,
-});
-
-// Headers for Axios request
-const axiosConfig = {
-    httpsAgent: agent,
-    headers: {
-        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
-    },
-    timeout: 5000
-};
-
 
 // Set CSRF token  &&  API key
 let csrfToken, apiKey;
 
-csrfToken= apiKey= "H0VvZHtgxl364wy9ouVdhH7OL7joK2iGId8fY0Lu";
-// Import axios-retry
+csrfToken = apiKey = 's0B4vivxGA4kShjk5a2qmqHXtbfiIVyftw8Q6a0T';
+
+
+// Set CSRF token && cookie
+
+let xsrfToken = "eyJpdiI6IjJcL0VidmY2b0tmXC9FaGR0cWVVeEhOQT09IiwidmFsdWUiOiJ4dXVmK3MwZG5vMFhnaVZ0YnBNNVBuTHJRRW1NZlVhdTQzK1VxQWpTWHo3aXdFSWM5TWlUMVVvK1VUMnBuMlVKIiwibWFjIjoiN2Y2NGMyNzc3ZmMxYjBkOGU0OGI2ZDM1NWRkMDI2NTY2MTU3OTU1YzY0YWViM2RhOTk3ZDBjODQ1NzgwYTIyNyJ9";
+let ivacSession ="eyJpdiI6IlwvYWxKd0tRSEQ5VXg2SEtLdk5YbjhBPT0iLCJ2YWx1ZSI6Ilg0T0p6XC9ZK3RhSlY4RmIrXC9BWVwvcWMyb002U1BnZ1dvVk9uU0liYnZBMzNzbEZTaHc4bkpvbU9reG82WGxjS0oiLCJtYWMiOiJjNmJjMTJiOWQ3NmI4NTNhYTJhZDZhN2U2MTk2YjM2NjM5ZGUwMjZiMDQ2OGMzMjUxZWVlNTU4MDJjZjMzM2U3In0";
+            
+//Date Release time
+const targetTime = '18:00:00'; // Target time in HH:mm:ss format
+
+const agent = new https.Agent({
+      keepAlive: true,           // Keep connection alive
+      maxSockets: 10,            // Allow up to 10 concurrent sockets (requests)
+      maxFreeSockets: 6,         // Allow up to 5 idle sockets to remain open
+      //keepAliveMsecs: 50000,
+});
+
+//Headers for Axios request
+const axiosConfig = {
+     httpsAgent: agent,
+    headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0",
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "application/x-www-form-urlencoded;charset=utf-8;",
+        "Priority": "u=0"
+    },
+    "credentials": "include",
+    // timeout: 30000,
+     
+};
+
+const validationHeader = {
+    httpsAgent: agent,
+    headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Connection': 'keep-alive',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0',
+    },
+   timeout: 20000
+};
+
+// Setting extracted cookies in header format
+const cookieHeader =`XSRF-TOKEN=${xsrfToken}; ivac_session=${ivacSession}`;
+
+// Set cookies  in headers validation Headers
+validationHeader.headers['Cookie'] = cookieHeader;
+
+// Set XSRF token in axios headers
+axiosConfig.headers['Cookie'] = cookieHeader;
+axiosConfig.headers['X-XSRF-TOKEN'] = xsrfToken;
+
 
 // Set base URL for API requests
 const apiBaseUrl = 'https://payment.ivacbd.com';
@@ -51,12 +84,20 @@ nextDayBdTime.setDate(bdTime.getDate() + 1);
 const nextDate = nextDayBdTime.toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });
 
 // data info variables
-var expected_date=nextDate;
-var web_file="BGDDW1477724";
-var applicant_name="SHAHARIAR HOSSAIN MUKUL";
+var expected_date = "2024-10-29"; //nextDate;
+
+let application = [
+     { web_file: "BGDDW1883824", applicant_name: "MUKTI RANI SAHA" },
+     { web_file: "BGDDW1885024", applicant_name: "BIPLOB KUMAR SAHA" }
+];    
+
+
 var mobile="01829006154";
-var email= "pakkna@gmail.com";
-var my_visa_type= "ENTRY VISA" //"ENTRY VISA"
+var email = "pakkna@gmail.com";
+
+var MainCenterId = 1; // Dhaka 1 , Chittagong 2, Rajshahi 3,Sylhet 4, KHULNA 5
+var VisaCenterId = 17;  //DHaka 17, JESSORE 12, KHULNA 19
+var VisaTypeId = 13; // MEDICAL VISA 13 // ENTRY VISA 6 // TOURIST VISA 3
 
 // funtion processing Variable;
 
@@ -73,6 +114,7 @@ let timeoutId; // set timeout id;
 let setProcessTimeoutId; // set timeout id;
 const setProcessTimeouts = []; // Array to store timeout IDs
 
+let validationTimeoutId = null;
 let fetchOtpTimeoutId = null;
 let payNowtimeoutId = null;
 
@@ -82,53 +124,66 @@ let resendOtp=0;
 let ReceivedOTP="";
 let selected_slot ="";
 
-// VIsa Type array of objects
-const VisaTypeArray = [
-    { id: 1, type_name: "TOURIST VISA", order: 1, is_active: 1 },
+// Sample array of objects
+const MainCenterlist = [
+    { id: 1, c_name: "Dhaka", prefix: "D" },
+    { id: 2, c_name: "Chittagong", prefix: "C" },
+    { id: 3, c_name: "Rajshahi", prefix: "R" },
+    { id: 4, c_name: "Sylhet", prefix: "S" },
+    { id: 5, c_name: "Khulna", prefix: "K" }
+];
+const VisaCenterList = [
+    { id: 12, center_info_id: 1, ivac_name: "IVAC, JESSORE", prefix: "D", visa_fee: "800.00",app_key: "IVACJESSORE"},
+    { id: 17, center_info_id: 1, ivac_name: "IVAC , DHAKA", prefix: "D", visa_fee: "800.00", app_key: "IVACDHAKA" },
+    { id: 18, center_info_id: 3, ivac_name: "IVAC , RAJSHAHI", prefix: "R", visa_fee: "800.00", app_key: "IVACRAJSHAHI" },
+    { id: 19, center_info_id: 5, ivac_name: "IVAC, KHULNA", prefix: "K", visa_fee: "800.00", app_key: "IVACKHULNA" },
+    { id: 20, center_info_id: 7, ivac_name: "IVAC , SYLHET", prefix: "S", visa_fee: "800.00", app_key: "IVACSYLHET" },
+    { id: 21, center_info_id: 9, ivac_name: "IVAC , CHITTAGONG", prefix: "C", visa_fee: "800.00", app_key: "IVACCHITTAGONG" },
+    { id: 22, center_info_id: 11, ivac_name: "IVAC , BARISAL", prefix: "B", visa_fee: "800.00", app_key: "IVACBARISAL" },
+    { id: 23, center_info_id: 13, ivac_name: "IVAC , COMILLA", prefix: "M", visa_fee: "800.00", app_key: "IVACCOMILLA" }
+];
+
+// VIsa Type array of objects}
+const VisaTypelist = [
+    { id: 3, type_name: "TOURIST VISA", order: 1, is_active: 1 },
     { id: 13, type_name: "MEDICAL/MEDICAL ATTENDANT VISA", order: 2, is_active: 1},
     { id: 2, type_name: "STUDENT VISA", order: 6, is_active: 1 },
     { id: 6, type_name: "ENTRY VISA", order: 5, is_active: 1}
 ];
+                
 
-let filesInfo ={
+let filesInfo = {
+    payment:[]
+}
 
-    payment:[
-        {
-            web_id: web_file,
-            web_id_repeat: web_file,
-            name: applicant_name,
+// Loop through each item in the application array, add an extra key, and push it to the payment array
+application.forEach(item => {
+    // Create a copy of the item and add an extra key, e.g., 'status'
+    let newItem = {
+            web_id: item.web_file,
+            web_id_repeat: item.web_file,
+            name: item.applicant_name,
             phone: mobile,
             email: email,
             amount: "800.00",
-            captcha: "",
-            center: {
-                id: "1",
-                c_name: "Dhaka",
-                prefix: "D",
-            },
+            center: getObjectByName(MainCenterlist, MainCenterId), // Dhaka 1 , KHULNA 5
             is_open: "true",
-            ivac: {
-                id: 17,
-                center_info_id: 1,
-                ivac_name: "IVAC, Dhaka (JFP)",
-                prefix: "D",
-                visa_fee: "800.00",
-                app_key: "IVACJFP",
-                charge: "3"
-            },
-            visa_type: getObjectByName(my_visa_type, VisaTypeArray),
+            ivac:  getObjectByName(VisaCenterList, VisaCenterId), //DHaka 17, kHULNA 19
+            visa_type: getObjectByName(VisaTypelist, VisaTypeId), // MEDICAL VISA 13 // ENTRY VISA 6
             confirm_tos: "true",
-            appointment_time:expected_date,
-            otp:ReceivedOTP,
-        }
-    ],
-};
+        };
+    
+    filesInfo.payment.push(newItem);
+});
+    
+filesInfo.payment[0].appointment_time = expected_date;
+filesInfo.payment[0].otp = ReceivedOTP;
 
 
-let selected_payment={
+scope.selected_payment={
     name: "Bkash",
     slug: "bkash",
-    grand_total: 824,
+    grand_total: application.length * 800 + application.length*24,
     //link: "https://securepay.sslcommerz.com/gwprocess/v4/image/gw1/bkash.png",
   };
 
@@ -153,9 +208,11 @@ ReceivedOTP=(checkOtpGet!==undefined) ? checkOtpGet:"";
 isOtpVerified=(checkOtpVerify!==undefined) ? checkOtpVerify:false;
   
 // Function to get an object by name
-function getObjectByName(name,objectArray) {
-    return objectArray.find(obj => obj.type_name === name);
+function getObjectByName(objectArray,id) {
+    return objectArray.find(obj => obj.id === id);
 }
+
+
 
 // Function to handle PayNow Payment Request
 const FinalPayNowV2Request = async()=>{
@@ -188,7 +245,8 @@ const FinalPayNowV2Request = async()=>{
             if (error_reason=="Mobile no is not verified with this requested webfiles" || error_reason=="OTP not found with this mobile number") {
                 updateStatusMessage('finalPayMSG',error_reason);
             }else if (error_reason==" Available slot is less than zero" || error_reason=="Available slot is less than zero"){
-                updateStatusMessage('finalPayMSG',error_reason);
+                updateStatusMessage('finalPayMSG', error_reason);
+                 payNowtimeoutId = setTimeout(FinalPayNowV2Request, 1000);
             }
             else{
                 updateStatusMessage('finalPayMSG',error_reason);
@@ -215,18 +273,18 @@ const FinalPayNowV2Request = async()=>{
                         openLink(resp.data.url+selected_payment.slug);
                 }else{
                     updateStatusMessage('finalPayMSG','Payment gateway not running right now.Resending..');
-                    payNowtimeoutId = setTimeout(FinalPayNowV2Request, 300);
+                    payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
                 }        
 
             }else{
                
                 updateStatusMessage('finalPayMSG','Failed to verify response data! Resending Request...');
-                payNowtimeoutId = setTimeout(FinalPayNowV2Request, 300);
+                payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
             }   
 
         }else{
             updateStatusMessage('finalPayMSG','Response data invalid! Resending Request...');
-            payNowtimeoutId = setTimeout(FinalPayNowV2Request, 300);
+            payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
         }
 
         
@@ -242,7 +300,7 @@ const FinalPayNowV2Request = async()=>{
             }
         }
         updateStatusMessage('finalPayMSG', 'Final pay request server error. Resending request....');
-        payNowtimeoutId = setTimeout(FinalPayNowV2Request, 300);
+        payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
     }
 }
 
@@ -293,7 +351,9 @@ const getDateTimeSlotRequest = async()=>{
                     isSlotTimeRequestStop = true;
                     checkGetTimeSlot=true;
 
-                    setItem(selectedSlotKey,selected_slot);
+                    setItem(selectedSlotKey, selected_slot);
+                
+                    SaveTimeSlot();
 
                     updateStatusMessage('Selected Date: ',JSON.stringify(selected_slot, null, 2),'\x1b[32m%s\x1b[0m' ); //log selected_date data
 
@@ -453,13 +513,12 @@ const sendOtpPostRequest = async() => {
         // Handle different response scenarios
         if (resp.status === "FAILED" && resp.code === 422) {
             updateStatusMessage('otpSendMsg', 'Slot is not available to send OTP. Retrying...');
-            timeoutId = setTimeout(sendOtpPostRequest, 200);
+            //timeoutId = setTimeout(sendOtpPostRequest, 200);
 
         } else if (resp.status == "SUCCESS" && resp.code === 200) {
 
             updateStatusMessage('otpSendMsg', 'OTP Sent Successfully. Finding OTP....','\x1b[32m%s\x1b[0m');
-            updateStatusMessage('otpSendMsg',JSON.stringify(resp, null, 2),'\x1b[34m%s\x1b[0m' ); //log response data
-            
+            //updateStatusMessage('otpSendMsg',JSON.stringify(resp, null, 2),'\x1b[34m%s\x1b[0m' ); //log response data
             //Stop sending Request
             clearTimeout(timeoutId);
             isOtpSendRequestStop=true;
@@ -486,7 +545,11 @@ const sendOtpPostRequest = async() => {
                 updateStatusMessage('otpSendMsg', 'An error occurred: ' + error.message);
             }
         }
-        updateStatusMessage('otpSendMsg', 'OTP send request Server Error.resending....');
+        // updateStatusMessage('otpSendMsg', 'OTP send request Server Error.resending....');
+
+
+        //console.log(error.response);
+        
         timeoutId = setTimeout(sendOtpPostRequest, 200);
     }
 }
@@ -515,6 +578,7 @@ async function getOtpFromApi() {
             if (resp.data.otp.length ===6){
 
                 isOtpReceived = true;
+                filesInfo.payment[0].otp = resp.data.otp;
                 ReceivedOTP=resp.data.otp;
                 
                 setItem(otpKey,ReceivedOTP);
@@ -536,20 +600,20 @@ async function getOtpFromApi() {
                 // Handle invalid OTP
                 updateStatusMessage('OTPGet','OTP Received Successfully. OTP Invalid: ' + resp.data.otp);
 
-                fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1500);
+                fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1000);
             }
 
         } else {
             updateStatusMessage('OTPGet','OTP is empty or undefined. Retrying...');
             
-                fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1500);
+                fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1000);
         }
 
     } catch (error) {
         // Handle error
         isGetOtpRequestInProgress = false;
         updateStatusMessage('OTPGet','Error fetching OTP. Retrying...'+error);
-        fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1500); // Retry after 1 second
+        fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1000); // Retry after 1 second
     }   
 }
 
@@ -574,12 +638,218 @@ const sendBatchedRequests = async (sendRequest)=>{
 }
 
 
- // date selection request
-sendBatchedRequests(getDateTimeSlotRequest);
- //otp send request
-sendOtpPostRequest();
+// Function to check the time and call sendOtpPostRequest if it's 10:00:01 AM BDT
+async function scheduleRequestSetup(targetTime) {
 
-getOtpFromApi();
+    // Function to get current time in Bangladesh Time
+    function getBangladeshTime() {
+        const options = {
+            timeZone: 'Asia/Dhaka', // Set to Bangladesh time zone
+            hour12: false // Use 24-hour time format
+        };
+    
+        // Get the current date in the specified timezone
+        const date = new Date();
+    
+        // Get the time string formatted as HH:mm:ss
+        return date.toLocaleTimeString('en-US', options);
+    }
+
+    // Convert targetTime to milliseconds for comparison
+    function parseTimeString(timeString) {
+        const [hours, minutes, seconds] = timeString.split(':').map(Number);
+        const date = new Date();
+        date.setHours(hours, minutes, seconds, 0);
+        return date.getTime();
+    }
+
+    const targetTimeMs = parseTimeString(targetTime);
+    
+    const interval = setInterval(async () => {
+        const currentTime = getBangladeshTime();
+        const currentTimeMs = parseTimeString(currentTime);
+        console.log(`Current Time in BDT: ${currentTime}`);
+        
+        // Check if the current time is greater than or equal to the target time
+        if (currentTimeMs >= targetTimeMs) {
+            // Your logic for OTP request and slot fetching
+
+            clearInterval(interval); // Stop checking after the function is called
+
+            updateStatusMessage('Start', '\n Request For Date Slot and Otp Send ...');
+            console.log('STARTING REQUEST OTP SENDING'); 
+            sendOtpPostRequest();
+            getOtpFromApi();
+            sendBatchedRequests(getDateTimeSlotRequest);
+            
+        } else {
+            console.clear();
+            console.log(`Date Release Time Not Yet ... Current Time: ${currentTime}`);
+        }
+    }, 1000); // Check every second
+}
+
+
+// Function to get session cookies from the website
+async function getSessionCookies() {
+    try {
+        const response = await axios.get('https://payment.ivacbd.com', {
+            withCredentials: true, // Include credentials (cookies) in requests
+        });
+
+       
+         // Capture and set cookies from the response headers
+        if (response.headers['set-cookie']) {
+
+            // Extracted cookies
+           let cookiesArray = response.headers['set-cookie'];
+            // Extract keys and values with specific naming
+
+            // Extract keys and values without any replacement
+            const extractedCookies = cookiesArray.map((cookie, index) => {
+                const parts = cookie.split(';')[0].split('='); // Split on first '=' to get key-value pair
+                const key = index === 0 ? 'xtoken' : 'session'; // Rename keys based on index
+                return {
+                    key: key,
+                    value: parts[1] // Take the value without any modifications
+                };
+            });
+
+            // Create an object for easy access
+            const cookies = {
+                xtoken: extractedCookies[0].value, // Get the value for xtoken
+                session: extractedCookies[1].value // Get the value for session
+            };
+           // console.log(cookieValues);
+            //const xsrfToken = getCookieValue(setCookieArray[0], 'XSRF-TOKEN');
+            //const ivacSession = getCookieValue(setCookieArray[1], 'ivac_session');
+
+
+            // let xsrfToken = "eyJpdiI6Ikp1cVpuODNZUTRVcE4yNUJmNEtqRUE9PSIsInZhbHVlIjoiVHVsME8wTkZ1cm5kbFhBa2F1T2Y5bDU0Z0dsUkhiOUEyNUhDOXk0WWZsUFlxd0g1dk5lZ3Bpc2NKYnVUZ2twayIsIm1hYyI6ImRhODYzZDkzYjM1ZTIzYjY3YzIyOWNmODY2ZWY0YjllMmUzMzYyNGM3MmMxZTE3NjBjMjFkYjFjNzkyYWNmNmMifQ%3D%3D";
+            // let ivacSession ="eyJpdiI6IjRDRDRNSHdHbms3RmhQaWNXU3ppR2c9PSIsInZhbHVlIjoiOFwvREhcL2VFbWxHNmVlUnV1YlwvT3NyazVDNjdTNzFncjhpdnQxbEFzbllvdWtcL0tLbFFoOTlcL3JLbVhqWlJ2OEtCIiwibWFjIjoiMDNmZTI4ZmVjN2JlNjJkNTVmM2FkZWVhY2RlMGE1ZjkyNWNiY2M4NzMwMjIwNTBhYmZjMWU5YzViM2JhNWU2ZiJ9eyJpdiI6IkdjWURHeDJFRllIY2pmaHIxdzRuU1E9PSIsInZhbHVlIjoiUHNnTnRNYTJJYkhwUmp2Q3p4aUZkempvZXdoRFU0MUV6d3o4U2o3b3JOUTQ0SFNYcFpLOURON3dXY1VkSVBVMiIsIm1hYyI6IjkxZTZkZDFhNzAxMDgxOWNlYWQ1NDgxNTA5NTZkODg5NDUzNjRiNzIzNTM4MTNhN2M3M2I2NzFkMjUzZjA2MzUifQ%3D%3D";
+            
+            // Setting extracted cookies in header format
+            const cookieHeader = cookiesArray; //`XSRF-TOKEN=${cookies.xtoken}; ivac_session=${cookies.session}`;
+
+            // Set cookies  in headers validation Headers
+            validationHeader.headers['Cookie'] = cookieHeader;
+
+            // Set XSRF token in axios headers
+            axiosConfig.headers['Cookie'] = cookieHeader;
+            axiosConfig.headers['X-XSRF-TOKEN'] = cookies.xtoken;
+
+            console.log('Cookies Set Successfully');
+
+            validateApplication();
+
+           // console.log(axiosConfig.headers);
+
+            //console.log(response.headers['set-cookie']);
+            
+           // console.log(axiosConfig.headers);
+        
+
+
+        }
+
+    } catch (error) {
+        console.error('Error fetching session cookies:', error);
+        validationTimeoutId = setTimeout(getSessionCookies, 1000); // Retry after 1 second
+    }
+}
+
+
+async function validateApplication() {
+
+    let web_file = filesInfo.payment[0].web_id;
+
+    if (!web_file) {
+        console.error('Invalid web_file value');
+        return; // Exit if web_file is not valid
+    }
+
+    try {
+        const response = await axios.get(`${apiBaseUrl}/payment/check-session/${web_file}`, validationHeader);
+        const isPaymentComplete = response.data === 'true';
+
+        if (!isPaymentComplete) {
+            console.log('Payment Check Response:', response.data);
+           clearTimeout(validationTimeoutId);
+            await completeSteps(); // Ensure to await the completion of steps
+        }
+    } catch (error) {
+        // Handle error
+        updateStatusMessage('FileValidation', 'Server error. Retrying...' + error);
+        validationTimeoutId = setTimeout(validateApplication, 1000); // Retry after 1 second
+    }
+}
+
+async function completeSteps() {
+    for (let step = 2; step <= 4; step++) {
+        try {
+            const response = await axios.get(`${apiBaseUrl}/payment/check-step/${step}`, validationHeader);
+            console.log('Payment Check Response:', response.data); // Log the full response for debugging
+            
+            if (response.data === false || response.data === 'false') {
+                updateStatusMessage('FileValidation', `File Verify Step ${step} Completed successfully`);
+                if (step === 4) {
+                    scheduleRequestSetup(targetTime);
+                }
+            } else {
+                console.log(`Step ${step} failed. Response:`, response.data);
+            }
+        } catch (error) {
+            updateStatusMessage('FileValidationStep', `File Verify Step Server Error. Retrying...${error}`);
+            step--; // Retry the current step
+        }
+    }
+}
+
+
+
+async function SaveTimeSlot() {
+
+    
+    var slotPostData = {
+        slot_key: filesInfo.payment[0].ivac.app_key,
+        slot_data: selected_slot,
+    };
+
+    try {
+
+        const response = await axios.post('https://api.costbuildpro.xyz/api/save-slot', slotPostData);
+        const resp = response.data;
+        
+        if (resp.success == true) {
+          //console.log("slot Save Response: " + JSON.stringify(resp));
+            console.log('Slot saved successfullly');
+        }
+
+    } catch (error) {
+         // Retry if we get a 504, 502, or 503 error (gateway timeout/server overload)
+
+        if (error.response && [504, 502, 503].includes(error.response.status)) {
+             console.log('Slot Error'+ error + ' Gateway timeout! Resending Request');
+        } else {
+              console.log('Slot Error'+ error + ' Gateway timeout! Resending Request');
+        }
+
+        setTimeout(SaveTimeSlot, 1000); // Retry after 200ms for other errors
+    };
+};
+
+
+//step 1: file validation
+validateApplication();
+
+//getSessionCookies();
+
+ // date selection request
+//sendBatchedRequests(getDateTimeSlotRequest);
+ //otp send request
+//sendOtpPostRequest();
+
+//getOtpFromApi();
 
  // check otp found or not
  //getOtpFromApi();
