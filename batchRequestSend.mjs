@@ -9,13 +9,13 @@ import fs from 'fs';
 // Set CSRF token  &&  API key
 let csrfToken, apiKey;
 
-csrfToken = apiKey = 's0B4vivxGA4kShjk5a2qmqHXtbfiIVyftw8Q6a0T';
+csrfToken = apiKey = 'Js8ie4u50a9Dp2qZ8geZWE7zcGocHqbEZMHKnUps';
 
 
 // Set CSRF token && cookie
 
-let xsrfToken = "eyJpdiI6IjJcL0VidmY2b0tmXC9FaGR0cWVVeEhOQT09IiwidmFsdWUiOiJ4dXVmK3MwZG5vMFhnaVZ0YnBNNVBuTHJRRW1NZlVhdTQzK1VxQWpTWHo3aXdFSWM5TWlUMVVvK1VUMnBuMlVKIiwibWFjIjoiN2Y2NGMyNzc3ZmMxYjBkOGU0OGI2ZDM1NWRkMDI2NTY2MTU3OTU1YzY0YWViM2RhOTk3ZDBjODQ1NzgwYTIyNyJ9";
-let ivacSession ="eyJpdiI6IlwvYWxKd0tRSEQ5VXg2SEtLdk5YbjhBPT0iLCJ2YWx1ZSI6Ilg0T0p6XC9ZK3RhSlY4RmIrXC9BWVwvcWMyb002U1BnZ1dvVk9uU0liYnZBMzNzbEZTaHc4bkpvbU9reG82WGxjS0oiLCJtYWMiOiJjNmJjMTJiOWQ3NmI4NTNhYTJhZDZhN2U2MTk2YjM2NjM5ZGUwMjZiMDQ2OGMzMjUxZWVlNTU4MDJjZjMzM2U3In0";
+let xsrfToken = "eyJpdiI6IlFicDNJbUNwSnJYOWxUOVdwNnVrXC9BPT0iLCJ2YWx1ZSI6Ik9pU2h2bjhFVmRqcFNVOElwcW5pSFwvK3NzRUhyMWxWSGdKS01PRU1xMVlRQWlXQXA0dVk1eGU0NXVNRmNHS2F4IiwibWFjIjoiNGZjMmNiMjAxNzYxYjAwMTI5ZjJiOGE0MjFiMGEzYmNkYmQ5NjcyNDdmY2E2MjAyZDIwNzEyNThiMDk1MWEwYiJ9";
+let ivacSession ="eyJpdiI6ImxwTnI3N01LWTJvRUVEclZ1M3pnSEE9PSIsInZhbHVlIjoiZVBKQUI3UWl5em4zaW1NVzVsb04yaTE3SEh6N3ZNZkdOdHRGR1RcL2tnZFhTdTErczFcL1VyXC9vOXBUcHFMN05LYSIsIm1hYyI6IjEzOWU4NjFlYzMxNmFkNWE1YzYwNzBjZDc0NDg1YjI3YjA2MmVkZTg2OGFjNThmMzY0NzVjZWQ0NWQ5Mzg3NjUifQ%3D%3D";
             
 //Date Release time
 const targetTime = '18:00:00'; // Target time in HH:mm:ss format
@@ -31,12 +31,12 @@ const agent = new https.Agent({
 const axiosConfig = {
      httpsAgent: agent,
     headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/131.0",
+        'Connection': 'keep-alive',
         "Accept": "application/json, text/plain, */*",
         "Content-Type": "application/x-www-form-urlencoded;charset=utf-8;",
         "Priority": "u=0"
     },
-    "credentials": "include",
     // timeout: 30000,
      
 };
@@ -47,8 +47,9 @@ const validationHeader = {
         'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
         'X-Requested-With': 'XMLHttpRequest',
         'Connection': 'keep-alive',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/131.0',
     },
+     withCredentials: true,
 //    timeout: 20000
 };
 
@@ -84,16 +85,16 @@ nextDayBdTime.setDate(bdTime.getDate() + 1);
 const nextDate = nextDayBdTime.toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });
 
 // data info variables
-var expected_date = "2024-10-29"; //nextDate;
+var expected_date = "2024-10-30"; //nextDate;
 
 let application = [
-     { web_file: "BGDDW1883824", applicant_name: "MUKTI RANI SAHA" },
-     { web_file: "BGDDW1885024", applicant_name: "BIPLOB KUMAR SAHA" }
+     { web_file: "BGDDW1AE3424", applicant_name: "PAKHI RANI ROY" },
+     { web_file: "BGDDW1AE3D24", applicant_name: "SUKAMAL ROY" }
 ];    
 
 
-var mobile="01829006154";
-var email = "pakkna@gmail.com";
+var mobile="01624389711";
+var email = "shuvo.ezzyr@gmail.com";
 
 var MainCenterId = 1; // Dhaka 1 , Chittagong 2, Rajshahi 3,Sylhet 4, KHULNA 5
 var VisaCenterId = 17;  //DHaka 17, JESSORE 12, KHULNA 19
@@ -105,7 +106,6 @@ let isOtpSendRequestStop = false;
 let isOtpVerifyRequestStop = false;
 let isGetOtpRequestInProgress = false;
 let isOtpRequestInProgress = false;
-let isOtpVerifyRequestInProgress = false;
 let isSlotTimeRequestStop = false;
 let isFinalPayNowRequestStop = false;
 let isOtpReceived = false;
@@ -113,6 +113,9 @@ let isOtpReceived = false;
 let timeoutId; // set timeout id;
 let setProcessTimeoutId; // set timeout id;
 const setProcessTimeouts = []; // Array to store timeout IDs
+
+let otherBatchTimeoutId; // set timeout id;
+const otherBatchTimeouts = []; // Array to store timeout IDs
 
 let validationTimeoutId = null;
 let fetchOtpTimeoutId = null;
@@ -212,6 +215,10 @@ function getObjectByName(objectArray,id) {
     return objectArray.find(obj => obj.id === id);
 }
 
+function getRandomDelay() {
+    const randomDelay = Math.floor(Math.random() * (800 - 400 + 1)) + 400;
+    return randomDelay;
+}
 
 
 // Function to handle PayNow Payment Request
@@ -246,11 +253,11 @@ const FinalPayNowV2Request = async()=>{
                 updateStatusMessage('finalPayMSG',error_reason);
             }else if (error_reason==" Available slot is less than zero" || error_reason=="Available slot is less than zero"){
                 updateStatusMessage('finalPayMSG', error_reason);
-                 payNowtimeoutId = setTimeout(FinalPayNowV2Request, 1000);
+                 payNowtimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
             }
             else{
                 updateStatusMessage('finalPayMSG',error_reason);
-                payNowtimeoutId = setTimeout(FinalPayNowV2Request, 500);
+                payNowtimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
             }
 
         }else if (resp.status !=="FAIL") {
@@ -273,18 +280,18 @@ const FinalPayNowV2Request = async()=>{
                         openLink(resp.data.url+selected_payment.slug);
                 }else{
                     updateStatusMessage('finalPayMSG','Payment gateway not running right now.Resending..');
-                    payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
+                    payNowtimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
                 }        
 
             }else{
                
                 updateStatusMessage('finalPayMSG','Failed to verify response data! Resending Request...');
-                payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
+                payNowtimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
             }   
 
         }else{
             updateStatusMessage('finalPayMSG','Response data invalid! Resending Request...');
-            payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
+            payNowtimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
         }
 
         
@@ -300,7 +307,7 @@ const FinalPayNowV2Request = async()=>{
             }
         }
         updateStatusMessage('finalPayMSG', 'Final pay request server error. Resending request....');
-        payNowtimeoutId = setTimeout(FinalPayNowV2Request, 100);
+        payNowtimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
     }
 }
 
@@ -336,7 +343,7 @@ const getDateTimeSlotRequest = async()=>{
 
                 updateStatusMessage('timeSlotMsg', 'Time slot not available in this time.Resending...');
                 
-                setProcessTimeoutId = setTimeout(getDateTimeSlotRequest, 300);
+                setProcessTimeoutId = setTimeout(getDateTimeSlotRequest, getRandomDelay);
                 setProcessTimeouts.push(setProcessTimeoutId);
 
             }else if(resp.status=='OK' && resp.slot_times.length!==0){
@@ -351,20 +358,25 @@ const getDateTimeSlotRequest = async()=>{
                     isSlotTimeRequestStop = true;
                     checkGetTimeSlot=true;
 
+                    SaveTimeSlot(resp.slot_times);
+                
                     setItem(selectedSlotKey, selected_slot);
                 
-                    SaveTimeSlot();
+                updateStatusMessage('timeSlotMsg', "AvailableSlot :" + selected_slot.availableSlot + " Selected Time: " + selected_slot.time_display, 'success');
+                
+                 if (checkGetTimeSlot && isOtpVerified) {
+                     otherBatchTimeouts.forEach(clearTimeout);
+                     isOtpVerifyRequestStop = true;
 
-                    updateStatusMessage('Selected Date: ',JSON.stringify(selected_slot, null, 2),'\x1b[32m%s\x1b[0m' ); //log selected_date data
-
-                    console.log("AvailableSlot :"+selected_slot.availableSlot+" Selected Time: "+selected_slot.time_display);
-                    updateStatusMessage('timeSlotMsg',"AvailableSlot :"+selected_slot.availableSlot+" Selected Time: "+selected_slot.time_display);
+                    updateStatusMessage('timeSlotMsg','Sending final PayNow request....');
+                    FinalPayNowV2Request();
+                }
                     
 
             } else {
                 updateStatusMessage('timeSlotMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
                 updateStatusMessage('timeSlotMsg', 'Time Slot is Empty! Resending Request...');
-                setProcessTimeoutId = setTimeout(getDateTimeSlotRequest, 300);
+                setProcessTimeoutId = setTimeout(getDateTimeSlotRequest, getRandomDelay);
                 setProcessTimeouts.push(setProcessTimeoutId);
             }    
 
@@ -381,22 +393,21 @@ const getDateTimeSlotRequest = async()=>{
             }
         }
         updateStatusMessage('timeSlotMsg', 'Time slot request server error. Resending request....');
-        setProcessTimeoutId = setTimeout(getDateTimeSlotRequest, 300);
+        setProcessTimeoutId = setTimeout(getDateTimeSlotRequest, getRandomDelay);
         setProcessTimeouts.push(setProcessTimeoutId);
     }
 }
 
 // Function to handle OTP verification
-const sendVerifyOtpRequest = async()=> {
-    if (isOtpVerifyRequestInProgress) {
-        updateStatusMessage('otpVerifyMsg','OTP Verify Request in progress, please wait...');
+const sendVerifyOtpRequest = async () => {
+    
+    if (isOtpVerifyRequestStop) {
+        updateStatusMessage('otpVerifyMsg','OTP Verify Request Stoped Successfully');
         return;
-    } else if (isOtpVerifyRequestStop) {
-          updateStatusMessage('otpVerifyMsg','OTP Verify Request Stoped Successfully');
+    } else if (isOtpVerified) {
+        updateStatusMessage('otpVerifyMsg','OTP Already Verified.request Stoped Successfully');
         return;
     }
-
-    isOtpVerifyRequestInProgress = true;
 
     const otpVerifyData =  qs.stringify({
         _token: csrfToken,
@@ -412,21 +423,22 @@ const sendVerifyOtpRequest = async()=> {
 
         const resp = response.data;
 
-        isOtpVerifyRequestInProgress = false;
-
         if (resp.status ===	"FAILED" && resp.code === 422) {
             
             updateStatusMessage('otpVerifyMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
-            var error_reason=resp.data.error_reason;
+            var error_reason = resp.data.error_reason;
+            
+            setProcessTimeouts.forEach(clearTimeout);
+            isOtpVerifyRequestStop = true;
 
-            if (error_reason=="Mobile no is not verified with this requested webfiles" || error_reason=="OTP not found with this mobile number" ||  error_reason=="OTP expired. Please try again" || error_reason=="OTP does not match. Please try again") {
+            if (error_reason=="OTP expired. Please try again" || error_reason=="OTP does not match. Please try again") {
                
                 if(ReceivedOTP.length == 6){
-                    updateStatusMessage('otpVerifyMsg',error_reason+'.Resending...');
-                    clearTimeout(timeoutId);
-                    //ReceivedOTP="";
-                    //resendOtp=1;
-                   // sendOtpPostRequest();
+                    updateStatusMessage('otpVerifyMsg',error_reason);
+
+                    ReceivedOTP="";
+                    resendOtp=1;
+                    sendOtpPostRequest();
                 }else{
                     updateStatusMessage('otpVerifyMsg','Otp length is not valid.Fetching New OTP...');
 
@@ -434,7 +446,24 @@ const sendVerifyOtpRequest = async()=> {
                         fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1500);
                     }
                 } 
-            }else{
+            }else if(error_reason.includes("OTP not found with this mobile number")){
+               
+                otherBatchTimeouts.forEach(clearTimeout);
+                isOtpVerifyRequestStop = true;
+                isOtpVerified==true;
+                
+                updateStatusMessage('otpVerifyMsg','OTP Not Found Mobile Number.Request Verified Successfully','success');
+       
+                if (checkGetTimeSlot && isOtpVerified) {
+                    setProcessTimeouts.forEach(clearTimeout);
+                    isSlotTimeRequestStop = true;
+
+                    updateStatusMessage('timeSlotMsg','Sending final PayNow request....');
+                    FinalPayNowV2Request();
+                }
+
+
+            }else {
                 updateStatusMessage('otpVerifyMsg',error_reason);
                 // timeoutId = setTimeout(sendVerifyOtpRequest, 500);
                 // timeouts.push(timeoutId);
@@ -442,17 +471,17 @@ const sendVerifyOtpRequest = async()=> {
 
         }else if (resp.status ==="SUCCESS" && resp.code === 200){
     
-                    updateStatusMessage('otpVerifyMsg','OTP Verified Successfully.','\x1b[32m%s\x1b[0m');
-                    updateStatusMessage('timeSlotMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
-                    isOtpVerifyRequestStop=true;
-                    isOtpVerified==true;
-                    clearTimeout(timeoutId);
-                   
-                    if (checkGetTimeSlot && isOtpVerified) {
+                setProcessTimeouts.forEach(clearTimeout);
+                isOtpVerifyRequestStop = true;
+                isOtpVerified==true;
+                
+                updateStatusMessage('otpVerifyMsg','OTP Verified Successfully.','success');
+       
+                if (checkGetTimeSlot && isOtpVerified) {
                         setProcessTimeouts.forEach(clearTimeout);
                         updateStatusMessage('timeSlotMsg','Sending final PayNow request....');
                         FinalPayNowV2Request();
-                    }
+                }
 
         }else{
             updateStatusMessage('otpVerifyMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
@@ -464,7 +493,6 @@ const sendVerifyOtpRequest = async()=> {
         
         
     } catch (error) {
-        isOtpVerifyRequestInProgress = false;
 
         if(error.response){
             if (error.response.status === 504|| error.response.status === 502) {  // Gateway timeout
@@ -472,12 +500,11 @@ const sendVerifyOtpRequest = async()=> {
             }else if(error.response.status === 403){
                 updateStatusMessage('otpVerifyMsg',error.response.status + ' Gateway timeout! Resending Request');
             }else{
-                updateStatusMessage('otpVerifyMsg', 'An error occurred: ' + error.message);
-                console.log('Error:', error.message);
+                updateStatusMessage('otpVerifyMsg', 'Error : ' + error.message);
             }
         }
-        updateStatusMessage('otpVerifyMsg', 'OTPVerify request  Server Error.resending....');
-        timeoutId = setTimeout(sendVerifyOtpRequest, 200);
+        otherBatchTimeoutId = setTimeout(getDateTimeSlotRequest, getRandomDelay);
+        otherBatchTimeouts.push(otherBatchTimeoutId);
       
     }
 }
@@ -523,14 +550,9 @@ const sendOtpPostRequest = async() => {
             clearTimeout(timeoutId);
             isOtpSendRequestStop=true;
             // Function to get OTP from API
-            
-            if (ReceivedOTP == "") {
-                getOtpFromApi();
-            }
-            
 
         } else {
-            timeoutId = setTimeout(sendOtpPostRequest, 200);
+            timeoutId = setTimeout(sendOtpPostRequest, getRandomDelay);
             updateStatusMessage('otpSendMsg',  resp.data.error_reason);
         }
 
@@ -550,7 +572,7 @@ const sendOtpPostRequest = async() => {
 
         //console.log(error.response);
         
-        timeoutId = setTimeout(sendOtpPostRequest, 200);
+        timeoutId = setTimeout(sendOtpPostRequest, getRandomDelay);
     }
 }
 
@@ -590,30 +612,30 @@ async function getOtpFromApi() {
 
                 clearTimeout(fetchOtpTimeoutId);
 
-                sendVerifyOtpRequest();
-
-                // Display success message
+               // Display success message
 
                 updateStatusMessage('OTPGet','OTP Received Successfully. OTP Received: ' + resp.data.otp,'\x1b[32m%s\x1b[0m');
+
+                otherBatchedRequests(sendVerifyOtpRequest);
 
             } else {
                 // Handle invalid OTP
                 updateStatusMessage('OTPGet','OTP Received Successfully. OTP Invalid: ' + resp.data.otp);
 
-                fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1000);
+                fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1500);
             }
 
         } else {
             updateStatusMessage('OTPGet','OTP is empty or undefined. Retrying...');
             
-                fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1000);
+                fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1500);
         }
 
     } catch (error) {
         // Handle error
         isGetOtpRequestInProgress = false;
         updateStatusMessage('OTPGet','Error fetching OTP. Retrying...'+error);
-        fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1000); // Retry after 1 second
+        fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1500); // Retry after 1 second
     }   
 }
 
@@ -627,7 +649,7 @@ const sendBatchedRequests = async (sendRequest)=>{
     for (let i = 0; i < numberOfBatchedRequests; i++) {
         const delay = initialDelay + i * 50; // Calculate the delay
 
-        console.log('Time slot batch Request sending:'+i);
+        // console.log('Time slot batch Request sending:'+i);
 
         setProcessTimeoutId = setTimeout(() => {
             sendRequest(i); // Call sendRequest with the current index
@@ -637,6 +659,24 @@ const sendBatchedRequests = async (sendRequest)=>{
     }
 }
 
+
+const otherBatchedRequests = async (sendRequest)=>{
+    
+    const numberOfBatchedRequests = 5; // Total number of requests
+    const initialDelay = 100; // Initial delay in milliseconds
+
+    for (let i = 0; i < numberOfBatchedRequests; i++) {
+        const delay = initialDelay + i * 50; // Calculate the delay
+
+        // console.log('Time slot batch Request sending:'+i);
+
+        otherBatchTimeoutId = setTimeout(() => {
+            sendRequest(i); // Call sendRequest with the current index
+        }, delay);
+
+        otherBatchTimeouts.push(otherBatchTimeoutId); // Store the timeout ID
+    }
+}
 
 // Function to check the time and call sendOtpPostRequest if it's 10:00:01 AM BDT
 async function scheduleRequestSetup(targetTime) {
@@ -774,13 +814,13 @@ async function validateApplication() {
 
         if (!isPaymentComplete) {
             console.log('Payment Check Response:', response.data);
-           clearTimeout(validationTimeoutId);
-            await completeSteps(); // Ensure to await the completion of steps
+            clearTimeout(validationTimeoutId);
+            completeSteps(); // Ensure to await the completion of steps
         }
     } catch (error) {
         // Handle error
-        updateStatusMessage('FileValidation', 'Server error. Retrying...' + error);
-        validationTimeoutId = setTimeout(validateApplication, 1000); // Retry after 1 second
+        updateStatusMessage('FileValidation', 'FileValidation Server error. Retrying...' + error);
+        validationTimeoutId = setTimeout(validateApplication, getRandomDelay); // Retry after 1 second
     }
 }
 
@@ -799,20 +839,19 @@ async function completeSteps() {
                 console.log(`Step ${step} failed. Response:`, response.data);
             }
         } catch (error) {
-            updateStatusMessage('FileValidationStep', `File Verify Step Server Error. Retrying...${error}`);
+            updateStatusMessage('FileValidationStep', `File Verify Step ${step} Server Error. Retrying...`);
             step--; // Retry the current step
         }
     }
 }
 
 
-
-async function SaveTimeSlot() {
+async function SaveTimeSlot(slotTimes) {
 
     
     var slotPostData = {
         slot_key: filesInfo.payment[0].ivac.app_key,
-        slot_data: selected_slot,
+        slot_data: slotTimes,
     };
 
     try {
@@ -821,8 +860,8 @@ async function SaveTimeSlot() {
         const resp = response.data;
         
         if (resp.success == true) {
-          //console.log("slot Save Response: " + JSON.stringify(resp));
-            console.log('Slot saved successfullly');
+            console.log("slot Save Response: " + JSON.stringify(resp));
+            updateStatusMessage('FileValidation', `Collected Slot Saved To Storage Successfullly`,'Success');
         }
 
     } catch (error) {
@@ -837,6 +876,42 @@ async function SaveTimeSlot() {
         setTimeout(SaveTimeSlot, 1000); // Retry after 200ms for other errors
     };
 };
+
+
+async function getSaveTimeSlot() {
+
+    try {
+
+        const response = await axios.get('https://api.costbuildpro.xyz/api/save-slot', {
+            params: {
+                slot_key: filesInfo.payment[0].ivac.app_key
+            },
+        });
+        
+        const resp = response.data;
+
+        if (resp.success == true &&  Array.isArray(resp.data)) {
+
+           console.log("slot Save Response: " + JSON.stringify(resp));
+            updateStatusMessage('FileValidation', `Saved Slot Got Successfullly`, 'Success');
+            
+        } else {
+            updateStatusMessage('FileValidation', `Saved Slot Got Error `, 'danger');
+        }
+
+    } catch (error) {
+         // Retry if we get a 504, 502, or 503 error (gateway timeout/server overload)
+
+        if (error.response && [504, 502, 503].includes(error.response.status)) {
+             console.log('Slot Error'+ error + ' Gateway timeout! Resending Request');
+        } else {
+              console.log('Slot Error'+ error + ' Gateway timeout! Resending Request');
+        }
+
+        setTimeout(getSaveTimeSlot, 1000); // Retry after 200ms for other errors
+    };
+};
+
 
 
 //step 1: file validation
