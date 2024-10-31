@@ -2,71 +2,11 @@
 import axios from 'axios';
 import qs from 'qs';
 import { exec } from 'child_process';
-import https from 'https';
 import fs from 'fs';
-
-
-// Set CSRF token  &&  API key
-let csrfToken, apiKey;
-
-csrfToken = apiKey = 'Js8ie4u50a9Dp2qZ8geZWE7zcGocHqbEZMHKnUps';
-
-
-// Set CSRF token && cookie
-
-let xsrfToken = "eyJpdiI6IlFicDNJbUNwSnJYOWxUOVdwNnVrXC9BPT0iLCJ2YWx1ZSI6Ik9pU2h2bjhFVmRqcFNVOElwcW5pSFwvK3NzRUhyMWxWSGdKS01PRU1xMVlRQWlXQXA0dVk1eGU0NXVNRmNHS2F4IiwibWFjIjoiNGZjMmNiMjAxNzYxYjAwMTI5ZjJiOGE0MjFiMGEzYmNkYmQ5NjcyNDdmY2E2MjAyZDIwNzEyNThiMDk1MWEwYiJ9";
-let ivacSession ="eyJpdiI6ImxwTnI3N01LWTJvRUVEclZ1M3pnSEE9PSIsInZhbHVlIjoiZVBKQUI3UWl5em4zaW1NVzVsb04yaTE3SEh6N3ZNZkdOdHRGR1RcL2tnZFhTdTErczFcL1VyXC9vOXBUcHFMN05LYSIsIm1hYyI6IjEzOWU4NjFlYzMxNmFkNWE1YzYwNzBjZDc0NDg1YjI3YjA2MmVkZTg2OGFjNThmMzY0NzVjZWQ0NWQ5Mzg3NjUifQ%3D%3D";
-            
-//Date Release time
-const targetTime = '18:00:00'; // Target time in HH:mm:ss format
-
-const agent = new https.Agent({
-      keepAlive: true,           // Keep connection alive
-      maxSockets: 10,            // Allow up to 10 concurrent sockets (requests)
-      maxFreeSockets: 6,         // Allow up to 5 idle sockets to remain open
-      //keepAliveMsecs: 50000,
-});
-
-//Headers for Axios request
-const axiosConfig = {
-     httpsAgent: agent,
-    headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/131.0",
-        'Connection': 'keep-alive',
-        "Accept": "application/json, text/plain, */*",
-        "Content-Type": "application/x-www-form-urlencoded;charset=utf-8;",
-        "Priority": "u=0"
-    },
-    // timeout: 30000,
-     
-};
-
-const validationHeader = {
-    httpsAgent: agent,
-    headers: {
-        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Connection': 'keep-alive',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/131.0',
-    },
-     withCredentials: true,
-//    timeout: 20000
-};
-
-// Setting extracted cookies in header format
-const cookieHeader =`XSRF-TOKEN=${xsrfToken}; ivac_session=${ivacSession}`;
-
-// Set cookies  in headers validation Headers
-validationHeader.headers['Cookie'] = cookieHeader;
-
-// Set XSRF token in axios headers
-axiosConfig.headers['Cookie'] = cookieHeader;
-axiosConfig.headers['X-XSRF-TOKEN'] = xsrfToken;
-
+import puppeteer from 'puppeteer';
 
 // Set base URL for API requests
 const apiBaseUrl = 'https://payment.ivacbd.com';
-
 
 // Set API endpoints
 const otpSendUrl = `${apiBaseUrl}/queue-manage`;
@@ -85,12 +25,15 @@ nextDayBdTime.setDate(bdTime.getDate() + 1);
 const nextDate = nextDayBdTime.toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });
 
 // data info variables
-var expected_date = "2024-10-30"; //nextDate;
+var expected_date = "2024-11-04"; //nextDate;
+
+//Date Release time
+const targetTime = '18:00:00'; // Target time in HH:mm:ss format
 
 let application = [
      { web_file: "BGDDW1B84124", applicant_name: "FEROJ AHMED" },
      { web_file: "BGDDW1B85124", applicant_name: "MST RAFIA SULTANA SONY" }
-];  
+];   
 
 
 var mobile="01624389711";
@@ -100,19 +43,23 @@ var MainCenterId = 1; // Dhaka 1 , Chittagong 2, Rajshahi 3,Sylhet 4, KHULNA 5
 var VisaCenterId = 17;  //DHaka 17, JESSORE 12, KHULNA 19
 var VisaTypeId = 13; // MEDICAL VISA 13 // ENTRY VISA 6 // TOURIST VISA 3
 
+// Set CSRF token  &&  API key
+let csrfToken, apiKey;
+
 // funtion processing Variable;
 
 let isOtpSendRequestStop = false;
 let isOtpVerifyRequestStop = false;
 let isGetOtpRequestInProgress = false;
 let isOtpRequestInProgress = false;
+let isOtpVerifyRequestInProgress = false;
+let isSlotTimeRequestInProgress = false;
 let isSlotTimeRequestStop = false;
 let isFinalPayNowRequestStop = false;
 let isOtpReceived = false;
 
 let timeoutId; // set timeout id;
-let setProcessTimeoutId; // set timeout id;
-const setProcessTimeouts = []; // Array to store timeout IDs
+
 
 let otherBatchTimeoutId; // set timeout id;
 const otherBatchTimeouts = []; // Array to store timeout IDs
@@ -120,12 +67,13 @@ const otherBatchTimeouts = []; // Array to store timeout IDs
 let validationTimeoutId = null;
 let fetchOtpTimeoutId = null;
 let payNowtimeoutId = null;
+let dateSlotTimeoutId=null; // set timeout id;
 
 let isOtpVerified = false;
 let checkGetTimeSlot = false;
 let resendOtp=0;
 let ReceivedOTP="";
-let selected_slot ="";
+let selected_slot = "";
 
 // Sample array of objects
 const MainCenterlist = [
@@ -187,17 +135,237 @@ let selected_payment={
     name: "Bkash",
     slug: "bkash",
     grand_total: application.length * 800 + application.length*24,
-    //link: "https://securepay.sslcommerz.com/gwprocess/v4/image/gw1/bkash.png",
+    link: "https://securepay.sslcommerz.com/gwprocess/v4/image/gw1/bkash.png",
   };
+
+
+//Headers for Axios request
+const axiosConfig = {
+    headers: {
+        'Connection': 'keep-alive',
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "application/x-www-form-urlencoded;charset=utf-8;",
+        'Referer': 'https://payment.ivacbd.com/',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'Priority': 'u=0',
+    },
+    // timeout: 30000,
+     withCredentials: true,
+     
+};
+
+const validationHeader = {
+    headers: {
+        'Accept': '*/*',
+        'Connection': 'keep-alive',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': 'https://payment.ivacbd.com/',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0',
+        'Priority': 'u=0',
+        'TE':'trailers'
+    },
+};
+  
+
+// Array of User-Agent strings for Windows and Linux
+const userAgents = [
+    // Windows User-Agents
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/101',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:96.0) Firefox/96',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Edg/91',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; Trident/7.0; rv:11.0) like Gecko',
+    
+    // Linux User-Agents
+    'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:90.0) Firefox/90',
+    'Mozilla/5.0 (X11; Linux x86_64) Chrome/92',
+    'Mozilla/5.0 (X11; Linux i686; rv:89.0) Firefox/89',
+    'Mozilla/5.0 (X11; Fedora; Linux x86_64) Chrome/93',
+
+     // Additional Cross-Platform Options
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110 Safari/537.36',
+    'Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) Gecko/20100101 Firefox/100.0',
+];
 
 
 let otpKey=filesInfo.payment[0].web_id+'-'+expected_date+'-otp';
 let selectedSlotKey=filesInfo.payment[0].web_id+'-'+expected_date+'-slot';
-let otpVerifiedKey=filesInfo.payment[0].web_id+'-'+expected_date+'-otpVerified';
+let otpVerifiedKey = filesInfo.payment[0].web_id + '-' + expected_date + '-otpVerified';
+let cookiesKey = filesInfo.payment[0].web_id + '_'+expected_date + '_cookies';
+let validationKey = filesInfo.payment[0].web_id + '_'+expected_date + '_stepVerify'; 
   
 let checkOtpGet=getItem(otpKey);
 let checkSelectedSlot=getItem(selectedSlotKey);
-let checkOtpVerify=getItem(otpVerifiedKey);
+let checkOtpVerify = getItem(otpVerifiedKey);
+let getCookies = getItem(cookiesKey);
+
+
+if (getCookies != undefined && getCookies) {
+
+    apiKey = getCookies.apiKey;
+    csrfToken = getCookies.apiKey;
+
+    // Set cookies  in headers validation Headers
+    validationHeader.headers['Cookie'] = getCookies.cookieHeader;
+    validationHeader.headers['X-XSRF-TOKEN'] = getCookies.xsrf_token;
+
+     // Set XSRF token in axios headers
+    axiosConfig.headers['Cookie'] =getCookies.cookieHeader;
+    axiosConfig.headers['X-XSRF-TOKEN'] = getCookies.xsrf_token;
+
+    
+    console.log("====== COOKIES & API KEY  RETRIEVED FROM STORAGE ======\n");
+
+    let isvalidated = getItem(validationKey);
+
+    if (isvalidated != undefined && isvalidated) {
+
+        console.log("====== FILE 5 STEP ALREADY VALIDATED. START TO SCHEDULE ======\n");
+          // Wait for user input to proceed
+        await new Promise(resolve => process.stdin.once('data', resolve));
+
+         scheduleRequestSetup(targetTime);
+        
+    } else {
+        console.log("====== FILE 5 STEP NOT VALIDATED. START VALIDATION ======\n");
+
+         await new Promise(resolve => process.stdin.once('data', resolve));
+         validateApplication();
+    }  
+
+} else {
+
+      //  start to get token and api key by Browser
+    (async () => {
+        const browser = await puppeteer.launch({ headless: "new" });
+        const page = await browser.newPage();
+
+        const cookies_info = {};
+        // Set a custom user agent
+        const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36';
+        await page.setUserAgent(userAgent);
+       
+        let errorMessages = ""; // Variable to store error messages
+    
+        console.log("====== STARTING To RETRIEVE API Key ======\n");
+    
+        while (true) {
+            try {
+                console.log("Step 1: Waiting for the server response...");
+    
+                // Navigate to the URL
+                const response = await page.goto('https://payment.ivacbd.com/', { waitUntil: 'networkidle2'});
+                console.log("Step 2: Server responded.\n");
+    
+
+                // Wait for AngularJS to be fully loaded
+                await page.waitForSelector('[ng-app]', { timeout: 20000 });
+
+                // Extract the apiKey from AngularJS scope
+                const RetriveApiKey = await page.evaluate(() => {
+                    return angular.element(document.body).scope().apiKey;
+                });
+
+                const cookies = await page.cookies();
+
+                //console.log('Cookies:', cookies);
+    
+                if (RetriveApiKey) {
+                    console.clear(); // Clear the console including any previous errors
+                    console.log("====== STARTING To RETRIEVE API Key ======\n");
+                    console.log(`Step 4: API Key : ${RetriveApiKey}\n`);
+                    console.log("====== API KEY SUCCESSFULLY RETRIEVED ======");
+
+                    apiKey=RetriveApiKey
+                    csrfToken = RetriveApiKey;
+
+                    // Function to extract specific cookie values
+                    function extractCookies(cookiesArray, cookieNames) {
+
+                        const extractedValues = {};
+    
+                            cookieNames.forEach(name => {
+                                const cookie = cookiesArray.find(cookie => cookie.name === name);
+                                    if (cookie) {
+                                        extractedValues[name] = cookie.value;
+                                    }
+                            });
+    
+                        return extractedValues;
+                    }
+
+                    // Extracting XSRF-TOKEN and ivac_session values
+                    const cookiesToExtract = ['XSRF-TOKEN', 'ivac_session'];
+                    const extractedCookies = extractCookies(cookies, cookiesToExtract);
+                      // Get all cookies for the current page
+                    
+                    if (cookiesToExtract.length > 0) {
+
+                        console.log("\n====== CSRF TOKEN & SESSION SUCCESSFULLY RETRIEVED ======\n");
+                       // console.log('Extracted XSRF-TOKEN:', extractedCookies['XSRF-TOKEN']);
+
+                        // // Setting extracted cookies in header format
+                         const cookieHeader =`XSRF-TOKEN=${extractedCookies['XSRF-TOKEN']}; ivac_session=${extractedCookies['ivac_session']}`;
+                        
+                        // Set cookies  in headers validation Headers
+                        validationHeader.headers['Cookie'] = cookieHeader;
+                        validationHeader.headers['X-XSRF-TOKEN'] = extractedCookies['XSRF-TOKEN'];
+
+                         // Set XSRF token in axios headers
+                        axiosConfig.headers['Cookie'] = cookieHeader;
+                        axiosConfig.headers['X-XSRF-TOKEN'] =decodeURIComponent(extractedCookies['XSRF-TOKEN']);
+                        
+                        //set api key info in storage
+                        cookies_info.apiKey = RetriveApiKey;
+                        //set cookie info in storage
+                        cookies_info.cookieHeader = cookieHeader;
+                        //set xsrf token info in storage
+                        cookies_info.xsrf_token = decodeURIComponent(extractedCookies['XSRF-TOKEN']);
+
+                        setItem(cookiesKey, cookies_info);
+                        
+                        console.log("\n====== COOKIS SETUP SUCCESSFULLY ======\n");
+                    } else {
+                        throw new Error('Cookies not found.');
+                    }
+                    
+                    //console.log('Extracted XSRF-TOKEN:', extractedCookies['XSRF-TOKEN']);
+
+                    break; // Exit the loop once both values are retrieved
+                } else {
+                    throw new Error('API key not found.');
+                }
+                
+    
+            } catch (error) {
+                errorMessages += `Attempt failed. Error: ${error.message}.\n`; // Append errors to errorMessages
+                console.clear(); // Clear previous logs
+                console.log(errorMessages); // Show accumulated error messages
+                console.log("Retrying in 2 seconds...\n");
+                await new Promise(resolve => setTimeout(resolve, 5000)); // Wait for 2 seconds before retrying
+            }
+        }
+    
+        // Close the browser after successful retrieval
+        await browser.close();
+    
+        console.log("\n====== FILE 5 STEP NOT VALIDATED.PRESS ENTER START VALIDATION ======\n");
+        // // Wait for user input to proceed
+        // await new Promise(resolve => process.stdin.once('data', resolve));
+
+        //console.log(validationHeader.headers);
+        //console.log(axiosConfig.headers);
+
+        validateApplication();
+
+    })();
+
+}
   
 
 if(checkSelectedSlot!==undefined){
@@ -208,16 +376,27 @@ if(checkSelectedSlot!==undefined){
 
 ReceivedOTP=(checkOtpGet!==undefined) ? checkOtpGet:"";
 
-isOtpVerified=(checkOtpVerify!==undefined) ? checkOtpVerify:false;
-  
+isOtpVerified = (checkOtpVerify !== undefined) ? checkOtpVerify : false;
+
 // Function to get an object by name
 function getObjectByName(objectArray,id) {
     return objectArray.find(obj => obj.id === id);
 }
 
 function getRandomDelay() {
-    const randomDelay = Math.floor(Math.random() * (1200 - 800 + 1)) + 800;
+    const randomDelay = Math.floor(Math.random() * (1000 - 500 + 1)) + 300;
     return randomDelay;
+}
+
+function timeSlotRandomDelay() {
+    const randomDelay = Math.floor(Math.random() * (1000 - 500 + 5)) + 500;
+    return randomDelay;
+}
+
+// Function to get a random User-Agent
+function getRandomUserAgent() {
+    const randomIndex = Math.floor(Math.random() * userAgents.length);
+    return userAgents[randomIndex];
 }
 
 
@@ -237,6 +416,8 @@ const FinalPayNowV2Request = async()=>{
         selected_slot : selected_slot,
     });
 
+    axiosConfig.headers['User-Agent'] = getRandomUserAgent();
+
     try {
 
         const response = await axios.post(payNowUrl, payNowSubmitData,axiosConfig);
@@ -249,11 +430,14 @@ const FinalPayNowV2Request = async()=>{
 
             var error_reason=(typeof resp?.errors !== 'undefined') ? resp.errors: "Pay Now Data response error.Resending...";
             
-            if (error_reason=="Mobile no is not verified with this requested webfiles" || error_reason=="OTP not found with this mobile number") {
+            if (error_reason=="Mobile no is not verified with this requested webfiles") {
                 updateStatusMessage('finalPayMSG',error_reason);
-            }else if (error_reason==" Available slot is less than zero" || error_reason=="Available slot is less than zero"){
+            }else if (error_reason == "selected slot visa_type and webfile visa_type_id not match") {
+                   updateStatusMessage('finalPayMSG',error_reason);
+            } else if (error_reason == " Available slot is less than zero" || error_reason == "Available slot is less than zero") {
+                console.log(selected_slot);
                 updateStatusMessage('finalPayMSG', error_reason);
-                 payNowtimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
+                 payNowtimeoutId = setTimeout(FinalPayNowV2Request, 2000);
             }
             else{
                 updateStatusMessage('finalPayMSG',error_reason);
@@ -314,12 +498,14 @@ const FinalPayNowV2Request = async()=>{
 // Function to handle slot time request with caching
 const getDateTimeSlotRequest = async()=>{
 
-    if (isSlotTimeRequestStop) {
+     if (isSlotTimeRequestInProgress) {
         updateStatusMessage('timeSlotMsg', 'TIme Slot Request stoped Successfully');
         return;
     }
-
-    if (checkGetTimeSlot) {
+    if (isSlotTimeRequestStop) {
+        updateStatusMessage('timeSlotMsg', 'TIme Slot Request stoped Successfully');
+        return;
+    }else if (checkGetTimeSlot) {
         updateStatusMessage('timeSlotMsg','Slot Already Selected:'+selected_slot.time_display);
         return;
     }
@@ -334,40 +520,45 @@ const getDateTimeSlotRequest = async()=>{
         info: filesInfo.payment,
     });
 
+    isSlotTimeRequestInProgress = true;
+    axiosConfig.headers['User-Agent'] = getRandomUserAgent();
+    
+
     try {
         const response = await axios.post(timeSlotUrl, timeSlotPostData, axiosConfig);
 
         const resp = response.data;
 
+             isSlotTimeRequestInProgress = false;
+
             if (resp.status=='OK' && resp.slot_times.length===0) {
 
                 updateStatusMessage('timeSlotMsg', 'Time slot not available in this time.Resending...');
-                
-                setProcessTimeoutId = setTimeout(getDateTimeSlotRequest, getRandomDelay);
-                setProcessTimeouts.push(setProcessTimeoutId);
+
+                dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, 1500);
 
             }else if(resp.status=='OK' && resp.slot_times.length!==0){
 
                     updateStatusMessage('timeSlotMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
-                    //Stop sending Request
-                    setProcessTimeouts.forEach(clearTimeout);
-
+                    
                     selected_slot = resp.slot_times[0];
                     filesInfo.payment[0].appointment_time = selected_slot.hour;
                     
                     isSlotTimeRequestStop = true;
                     checkGetTimeSlot=true;
 
-                    SaveTimeSlot(resp.slot_times);
-                
                     setItem(selectedSlotKey, selected_slot);
+                    
+                    //Stop sending Request
+                    clearTimeout(dateSlotTimeoutId);
+
+                    //save Time Slot to api server
+                    SaveTimeSlot(resp.slot_times);
+
                 
                 updateStatusMessage('timeSlotMsg', "AvailableSlot :" + selected_slot.availableSlot + " Selected Time: " + selected_slot.time_display, 'success');
                 
-                 if (checkGetTimeSlot && isOtpVerified) {
-                     otherBatchTimeouts.forEach(clearTimeout);
-                     isOtpVerifyRequestStop = true;
-
+                if (checkGetTimeSlot && isOtpVerified) {
                     updateStatusMessage('timeSlotMsg','Sending final PayNow request....');
                     FinalPayNowV2Request();
                 }
@@ -376,32 +567,54 @@ const getDateTimeSlotRequest = async()=>{
             } else {
                 updateStatusMessage('timeSlotMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
                 updateStatusMessage('timeSlotMsg', 'Time Slot is Empty! Resending Request...');
-                setProcessTimeoutId = setTimeout(getDateTimeSlotRequest, getRandomDelay);
-                setProcessTimeouts.push(setProcessTimeoutId);
+
+                dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, timeSlotRandomDelay);
             }    
 
     } catch (error) {
 
-        if(error.response){
-            if (error.response.status === 504|| error.response.status === 502) {  // Gateway timeout
-                updateStatusMessage('timeSlotMsg', error.response.status +' Gateway timeout! Resending Request');
-            }else if(error.response.status === 403){
-                updateStatusMessage('timeSlotMsg',error.response.status + ' Gateway timeout! Resending Request');
-            }else{
-                updateStatusMessage('timeSlotMsg', 'An error occurred: ' + error.message);
-                console.log('Error:', error.message);
+         isSlotTimeRequestInProgress = false;
+       
+        if (error.response) {
+            const statusCode = error.response.status;
+
+            if (statusCode === 504 || statusCode === 502) {  // Gateway timeout
+                updateStatusMessage('timeSlotMsg', `${statusCode} Gateway timeout! Resending Request`);
+                clearTimeout(dateSlotTimeoutId);
+                dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, timeSlotRandomDelay);
+
+            } else if (statusCode === 500) {  
+                updateStatusMessage('timeSlotMsg', `${statusCode} Request Data Error! Check data.`);
+            }else if (statusCode === 429) {  
+                updateStatusMessage('timeSlotMsg', `${statusCode} Request Rate Limit Excided.`);
+                console.log("\n====== Request Rate Limit Excided . Please Change Your IP Then Press Enter ======\n");
+                // Wait for user input to proceed
+                await new Promise(resolve => process.stdin.once('data', resolve));
+
+                dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, timeSlotRandomDelay);
+
+            }else if (statusCode === 403) {  // Forbidden
+                updateStatusMessage('timeSlotMsg', `${statusCode} Access forbidden! Check permissions.`);
+                clearTimeout(dateSlotTimeoutId);
+                dateSlotTimeoutId = setTimeout(getDateTimeSlotRequest, timeSlotRandomDelay);
+            } else {
+                console.log(`Error ${statusCode}: ${error.message}`);
+                updateStatusMessage('timeSlotMsg', `An error occurred: ${error.message}`);
             }
+        } else {
+            updateStatusMessage('timeSlotMsg', `An error occurred: ${error.message}`);
         }
-        updateStatusMessage('timeSlotMsg', 'Time slot request server error. Resending request....');
-        setProcessTimeoutId = setTimeout(getDateTimeSlotRequest, getRandomDelay);
-        setProcessTimeouts.push(setProcessTimeoutId);
+
     }
 }
 
 // Function to handle OTP verification
 const sendVerifyOtpRequest = async () => {
     
-    if (isOtpVerifyRequestStop) {
+    if (isOtpVerifyRequestInProgress) {
+        updateStatusMessage('otpVerify','OTP Verify Request in progress, please wait...');
+        return;
+    }else if (isOtpVerifyRequestStop) {
         updateStatusMessage('otpVerifyMsg','OTP Verify Request Stoped Successfully');
         return;
     } else if (isOtpVerified) {
@@ -416,6 +629,9 @@ const sendVerifyOtpRequest = async () => {
         info: filesInfo.payment,
         otp: ReceivedOTP,
     });
+    isOtpVerifyRequestInProgress = true;
+    
+    axiosConfig.headers['User-Agent'] = getRandomUserAgent();
     
     try {
         // Send POST request with Axios
@@ -423,12 +639,14 @@ const sendVerifyOtpRequest = async () => {
 
         const resp = response.data;
 
+         isOtpVerifyRequestInProgress = false;
+
         if (resp.status ===	"FAILED" && resp.code === 422) {
             
             updateStatusMessage('otpVerifyMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
             var error_reason = resp.data.error_reason;
             
-            setProcessTimeouts.forEach(clearTimeout);
+            clearTimeout(timeoutId);
             isOtpVerifyRequestStop = true;
 
             if (error_reason=="OTP expired. Please try again" || error_reason=="OTP does not match. Please try again") {
@@ -448,15 +666,13 @@ const sendVerifyOtpRequest = async () => {
                 } 
             }else if(error_reason.includes("OTP not found with this mobile number")){
                
-                otherBatchTimeouts.forEach(clearTimeout);
+                clearTimeout(timeoutId);
                 isOtpVerifyRequestStop = true;
                 isOtpVerified==true;
                 
                 updateStatusMessage('otpVerifyMsg','OTP Not Found Mobile Number.Request Verified Successfully','success');
        
                 if (checkGetTimeSlot && isOtpVerified) {
-                    setProcessTimeouts.forEach(clearTimeout);
-                    isSlotTimeRequestStop = true;
 
                     updateStatusMessage('timeSlotMsg','Sending final PayNow request....');
                     FinalPayNowV2Request();
@@ -471,14 +687,13 @@ const sendVerifyOtpRequest = async () => {
 
         }else if (resp.status ==="SUCCESS" && resp.code === 200){
     
-                setProcessTimeouts.forEach(clearTimeout);
+                clearTimeout(timeoutId);
                 isOtpVerifyRequestStop = true;
                 isOtpVerified==true;
                 
                 updateStatusMessage('otpVerifyMsg','OTP Verified Successfully.','success');
        
                 if (checkGetTimeSlot && isOtpVerified) {
-                        setProcessTimeouts.forEach(clearTimeout);
                         updateStatusMessage('timeSlotMsg','Sending final PayNow request....');
                         FinalPayNowV2Request();
                 }
@@ -494,17 +709,39 @@ const sendVerifyOtpRequest = async () => {
         
     } catch (error) {
 
-        if(error.response){
-            if (error.response.status === 504|| error.response.status === 502) {  // Gateway timeout
-                updateStatusMessage('otpVerifyMsg', error.response.status +' Gateway timeout! Resending Request');
-            }else if(error.response.status === 403){
-                updateStatusMessage('otpVerifyMsg',error.response.status + ' Gateway timeout! Resending Request');
-            }else{
-                updateStatusMessage('otpVerifyMsg', 'Error : ' + error.message);
+        isOtpVerifyRequestInProgress = false;
+
+        if (error.response) {
+            const statusCode = error.response.status;
+            
+            if (statusCode === 504 || statusCode === 502) {  // Gateway timeout
+                updateStatusMessage('otpVerifyMsg', `${statusCode} Gateway timeout! Resending Request`);
+                clearTimeout(dateSlotTimeoutId);
+                
+                timeoutId = setTimeout(sendVerifyOtpRequest, getRandomDelay);
+
+            } else if (statusCode === 500) {  
+                updateStatusMessage('otpVerifyMsg', `${statusCode} Request Data Error! Check data.`);
+            }else if (statusCode === 429) {  
+                updateStatusMessage('otpVerifyMsg', `${statusCode} Request Rate Limit Excided.`);
+
+                console.log("\n====== Request Rate Limit Excided . Please Change Your IP Then Press Enter ======\n");
+                // Wait for user input to proceed
+                await new Promise(resolve => process.stdin.once('data', resolve));
+                timeoutId = setTimeout(sendVerifyOtpRequest, getRandomDelay);
+
+            }else if (statusCode === 403) {  // Forbidden
+                updateStatusMessage('otpVerifyMsg', `${statusCode} Access forbidden! Check permissions.`);
+
+                timeoutId = setTimeout(sendVerifyOtpRequest, getRandomDelay);
+                
+            } else {
+                console.log(`Error ${statusCode}: ${error.message}`);
+                updateStatusMessage('otpVerifyMsg', `An error occurred: ${error.message}`);
             }
+        } else {
+            updateStatusMessage('otpVerifyMsg', `An error occurred: ${error.message}`);
         }
-        otherBatchTimeoutId = setTimeout(getDateTimeSlotRequest, getRandomDelay);
-        otherBatchTimeouts.push(otherBatchTimeoutId);
       
     }
 }
@@ -521,6 +758,8 @@ const sendOtpPostRequest = async() => {
 
     isOtpRequestInProgress = true;
 
+    axiosConfig.headers['User-Agent'] = getRandomUserAgent();
+
     const OtpSendPostData =  qs.stringify({
         _token: csrfToken,
         apiKey: apiKey,
@@ -536,11 +775,14 @@ const sendOtpPostRequest = async() => {
 
         const resp = response.data;
 
+        //console.log('Response:', response.data);
+
         isOtpRequestInProgress = false;
         // Handle different response scenarios
         if (resp.status === "FAILED" && resp.code === 422) {
             updateStatusMessage('otpSendMsg', 'Slot is not available to send OTP. Retrying...');
-            //timeoutId = setTimeout(sendOtpPostRequest, 200);
+
+            timeoutId = setTimeout(sendOtpPostRequest, 2000);
 
         } else if (resp.status == "SUCCESS" && resp.code === 200) {
 
@@ -558,21 +800,37 @@ const sendOtpPostRequest = async() => {
 
     } catch (error) {
         isOtpRequestInProgress = false;
-        if(error.response){
-            if (error.response.status === 504|| error.response.status === 502) {  // Gateway timeout
-                updateStatusMessage('otpSendMsg', error.response.status +' Gateway timeout! Resending Request');
-            }else if(error.response.status === 403){
-                updateStatusMessage('otpSendMsg',error.response.status + ' Gateway timeout! Resending Request');
-            }else{
-                updateStatusMessage('otpSendMsg', 'An error occurred: ' + error.message);
+
+        if (error.response) {
+            const statusCode = error.response.status;
+
+            if (statusCode === 504 || statusCode === 502) {  // Gateway timeout
+                updateStatusMessage('timeSlotMsg', `${statusCode} Gateway timeout! Resending Request`);       
+                timeoutId = setTimeout(sendOtpPostRequest, getRandomDelay);
+
+            } else if (statusCode === 500) {  
+                updateStatusMessage('otpSendMsg', `${statusCode} Request Data Error! Check data.`);
+            }else if (statusCode === 429) {  
+                updateStatusMessage('otpSendMsg', `${statusCode} Request Rate Limit Excided.`);
+
+                console.log("\n====== Request Rate Limit Excided . Please Change Your IP Then Press Enter ======\n");
+                // Wait for user input to proceed
+                await new Promise(resolve => process.stdin.once('data', resolve));
+                timeoutId = setTimeout(sendOtpPostRequest, getRandomDelay);
+
+            }else if (statusCode === 403) {  // Forbidden
+                updateStatusMessage('otpSendMsg', `${statusCode} Access forbidden! Check permissions.`);
+
+                timeoutId = setTimeout(sendOtpPostRequest, getRandomDelay);
+                
+            } else {
+                console.log(`Error ${statusCode}: ${error.message}`);
+                updateStatusMessage('otpSendMsg', `An error occurred: ${error.message}`);
             }
+        } else {
+            updateStatusMessage('otpSendMsg', `An error occurred: ${error.message}`);
         }
-        // updateStatusMessage('otpSendMsg', 'OTP send request Server Error.resending....');
 
-
-        //console.log(error.response);
-        
-        timeoutId = setTimeout(sendOtpPostRequest, getRandomDelay);
     }
 }
 
@@ -622,60 +880,21 @@ async function getOtpFromApi() {
                 // Handle invalid OTP
                 updateStatusMessage('OTPGet','OTP Received Successfully. OTP Invalid: ' + resp.data.otp);
 
-                fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1500);
+                fetchOtpTimeoutId = setTimeout(getOtpFromApi, 2000);
             }
 
         } else {
             updateStatusMessage('OTPGet','OTP is empty or undefined. Retrying...');
             
-                fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1500);
+                fetchOtpTimeoutId = setTimeout(getOtpFromApi, 2000);
         }
 
     } catch (error) {
         // Handle error
         isGetOtpRequestInProgress = false;
         updateStatusMessage('OTPGet','Error fetching OTP. Retrying...'+error);
-        fetchOtpTimeoutId = setTimeout(getOtpFromApi, 1500); // Retry after 1 second
+        fetchOtpTimeoutId = setTimeout(getOtpFromApi, 2000); // Retry after 1 second
     }   
-}
-
-//batch request sending
-
-const sendBatchedRequests = async (sendRequest)=>{
-    
-    const numberOfBatchedRequests = 5; // Total number of requests
-    const initialDelay = 100; // Initial delay in milliseconds
-
-    for (let i = 0; i < numberOfBatchedRequests; i++) {
-        const delay = initialDelay + i * 50; // Calculate the delay
-
-        // console.log('Time slot batch Request sending:'+i);
-
-        setProcessTimeoutId = setTimeout(() => {
-            sendRequest(i); // Call sendRequest with the current index
-        }, delay);
-
-        setProcessTimeouts.push(setProcessTimeoutId); // Store the timeout ID
-    }
-}
-
-
-const otherBatchedRequests = async (sendRequest)=>{
-    
-    const numberOfBatchedRequests = 5; // Total number of requests
-    const initialDelay = 100; // Initial delay in milliseconds
-
-    for (let i = 0; i < numberOfBatchedRequests; i++) {
-        const delay = initialDelay + i * 50; // Calculate the delay
-
-        // console.log('Time slot batch Request sending:'+i);
-
-        otherBatchTimeoutId = setTimeout(() => {
-            sendRequest(i); // Call sendRequest with the current index
-        }, delay);
-
-        otherBatchTimeouts.push(otherBatchTimeoutId); // Store the timeout ID
-    }
 }
 
 // Function to check the time and call sendOtpPostRequest if it's 10:00:01 AM BDT
@@ -716,10 +935,10 @@ async function scheduleRequestSetup(targetTime) {
 
             clearInterval(interval); // Stop checking after the function is called
 
-            updateStatusMessage('Start', '\n Request For Date Slot and Otp Send ...');
-            console.log('STARTING REQUEST OTP SENDING'); 
+            console.log('\n STARTING REQUEST SENDING IN TIME\n'); 
             sendOtpPostRequest();
             getOtpFromApi();
+            //FinalPayNowV2Request();
             getDateTimeSlotRequest();
             
         } else {
@@ -727,75 +946,6 @@ async function scheduleRequestSetup(targetTime) {
             console.log(`Date Release Time Not Yet ... Current Time: ${currentTime}`);
         }
     }, 1000); // Check every second
-}
-
-
-// Function to get session cookies from the website
-async function getSessionCookies() {
-    try {
-        const response = await axios.get('https://payment.ivacbd.com', {
-            withCredentials: true, // Include credentials (cookies) in requests
-        });
-
-       
-         // Capture and set cookies from the response headers
-        if (response.headers['set-cookie']) {
-
-            // Extracted cookies
-           let cookiesArray = response.headers['set-cookie'];
-            // Extract keys and values with specific naming
-
-            // Extract keys and values without any replacement
-            const extractedCookies = cookiesArray.map((cookie, index) => {
-                const parts = cookie.split(';')[0].split('='); // Split on first '=' to get key-value pair
-                const key = index === 0 ? 'xtoken' : 'session'; // Rename keys based on index
-                return {
-                    key: key,
-                    value: parts[1] // Take the value without any modifications
-                };
-            });
-
-            // Create an object for easy access
-            const cookies = {
-                xtoken: extractedCookies[0].value, // Get the value for xtoken
-                session: extractedCookies[1].value // Get the value for session
-            };
-           // console.log(cookieValues);
-            //const xsrfToken = getCookieValue(setCookieArray[0], 'XSRF-TOKEN');
-            //const ivacSession = getCookieValue(setCookieArray[1], 'ivac_session');
-
-
-            // let xsrfToken = "eyJpdiI6Ikp1cVpuODNZUTRVcE4yNUJmNEtqRUE9PSIsInZhbHVlIjoiVHVsME8wTkZ1cm5kbFhBa2F1T2Y5bDU0Z0dsUkhiOUEyNUhDOXk0WWZsUFlxd0g1dk5lZ3Bpc2NKYnVUZ2twayIsIm1hYyI6ImRhODYzZDkzYjM1ZTIzYjY3YzIyOWNmODY2ZWY0YjllMmUzMzYyNGM3MmMxZTE3NjBjMjFkYjFjNzkyYWNmNmMifQ%3D%3D";
-            // let ivacSession ="eyJpdiI6IjRDRDRNSHdHbms3RmhQaWNXU3ppR2c9PSIsInZhbHVlIjoiOFwvREhcL2VFbWxHNmVlUnV1YlwvT3NyazVDNjdTNzFncjhpdnQxbEFzbllvdWtcL0tLbFFoOTlcL3JLbVhqWlJ2OEtCIiwibWFjIjoiMDNmZTI4ZmVjN2JlNjJkNTVmM2FkZWVhY2RlMGE1ZjkyNWNiY2M4NzMwMjIwNTBhYmZjMWU5YzViM2JhNWU2ZiJ9eyJpdiI6IkdjWURHeDJFRllIY2pmaHIxdzRuU1E9PSIsInZhbHVlIjoiUHNnTnRNYTJJYkhwUmp2Q3p4aUZkempvZXdoRFU0MUV6d3o4U2o3b3JOUTQ0SFNYcFpLOURON3dXY1VkSVBVMiIsIm1hYyI6IjkxZTZkZDFhNzAxMDgxOWNlYWQ1NDgxNTA5NTZkODg5NDUzNjRiNzIzNTM4MTNhN2M3M2I2NzFkMjUzZjA2MzUifQ%3D%3D";
-            
-            // Setting extracted cookies in header format
-            const cookieHeader = cookiesArray; //`XSRF-TOKEN=${cookies.xtoken}; ivac_session=${cookies.session}`;
-
-            // Set cookies  in headers validation Headers
-            validationHeader.headers['Cookie'] = cookieHeader;
-
-            // Set XSRF token in axios headers
-            axiosConfig.headers['Cookie'] = cookieHeader;
-            axiosConfig.headers['X-XSRF-TOKEN'] = cookies.xtoken;
-
-            console.log('Cookies Set Successfully');
-
-            validateApplication();
-
-           // console.log(axiosConfig.headers);
-
-            //console.log(response.headers['set-cookie']);
-            
-           // console.log(axiosConfig.headers);
-        
-
-
-        }
-
-    } catch (error) {
-        console.error('Error fetching session cookies:', error);
-        validationTimeoutId = setTimeout(getSessionCookies, 1000); // Retry after 1 second
-    }
 }
 
 
@@ -809,34 +959,36 @@ async function validateApplication() {
     }
 
     try {
+
         const response = await axios.get(`${apiBaseUrl}/payment/check-session/${web_file}`, validationHeader);
+
         const isPaymentComplete = response.data === 'true';
 
         if (!isPaymentComplete) {
             console.log('Payment Check Response:', response.data);
-            clearTimeout(validationTimeoutId);
+             updateStatusMessage('FileValidation', `File Verify Step 1 Completed successfully`);
             completeSteps(); // Ensure to await the completion of steps
         }
     } catch (error) {
         // Handle error
-        updateStatusMessage('FileValidation', 'FileValidation Server error. Retrying...' + error);
+        updateStatusMessage('FileValidation', 'FileValidation Server error. Retrying...');
         validationTimeoutId = setTimeout(validateApplication, getRandomDelay); // Retry after 1 second
     }
 }
 
 async function completeSteps() {
-    for (let step = 2; step <= 4; step++) {
+    for (let step = 2; step <= 5; step++) {
         try {
             // Introduce a delay of 1000-1500 ms before each step
-            const delay = Math.floor(Math.random() * 500) + 1000;
-            await new Promise(resolve => setTimeout(resolve, delay));
+            await new Promise(resolve => setTimeout(resolve, getRandomDelay));
 
             const response = await axios.get(`${apiBaseUrl}/payment/check-step/${step}`, validationHeader);
             console.log('Payment Check Response:', response.data); // Log the full response for debugging
             
             if (response.data === false || response.data === 'false') {
                 updateStatusMessage('FileValidation', `File Verify Step ${step} Completed successfully`);
-                if (step === 4) {
+                if (step === 5) {
+                    setItem(validationKey,1);
                     scheduleRequestSetup(targetTime);
                 }
             } else {
@@ -848,7 +1000,6 @@ async function completeSteps() {
         }
     }
 }
-
 
 async function SaveTimeSlot(slotTimes) {
 
@@ -917,9 +1068,8 @@ async function getSaveTimeSlot() {
 };
 
 
-
 //step 1: file validation
-validateApplication();
+//validateApplication();
 
 //getSessionCookies();
 
