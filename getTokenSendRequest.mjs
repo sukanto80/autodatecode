@@ -1,9 +1,9 @@
 
 import axios from 'axios';
-import qs from 'qs';
 import { exec } from 'child_process';
 import fs from 'fs';
 import puppeteer from 'puppeteer';
+import qs from 'qs';
 
 // Set base URL for API requests
 const apiBaseUrl = 'https://payment.ivacbd.com';
@@ -25,19 +25,19 @@ nextDayBdTime.setDate(bdTime.getDate() + 1);
 const nextDate = nextDayBdTime.toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });
 
 // data info variables
-var expected_date = "2024-11-04"; //nextDate;
+var expected_date = "2024-11-10";//nextDate;
 
 //Date Release time
-const targetTime = '18:00:00'; // Target time in HH:mm:ss format
+const targetTime = '17:50:00'; // Target time in HH:mm:ss format
 
 let application = [
-     { web_file: "BGDDW1B84124", applicant_name: "FEROJ AHMED" },
-     { web_file: "BGDDW1B85124", applicant_name: "MST RAFIA SULTANA SONY" }
+    { web_file: "BGDDW1CF2224", applicant_name: "NEJAM UDDIN" },
+    { web_file: "BGDDW1CF3224", applicant_name: "FOYEZ AHMED" },
 ];   
 
 
-var mobile="01624389711";
-var email = "shuvo.ezzyr@gmail.com";
+var mobile="01829006154";
+var email = "pakkna@gmail.com";
 
 var MainCenterId = 1; // Dhaka 1 , Chittagong 2, Rajshahi 3,Sylhet 4, KHULNA 5
 var VisaCenterId = 17;  //DHaka 17, JESSORE 12, KHULNA 19
@@ -73,7 +73,7 @@ let isOtpVerified = false;
 let checkGetTimeSlot = false;
 let resendOtp=0;
 let ReceivedOTP="";
-let selected_slot = "";
+let selected_slot ="";
 
 // Sample array of objects
 const MainCenterlist = [
@@ -206,7 +206,7 @@ let getCookies = getItem(cookiesKey);
 
 
 if (getCookies != undefined && getCookies) {
-
+   
     apiKey = getCookies.apiKey;
     csrfToken = getCookies.apiKey;
 
@@ -227,14 +227,13 @@ if (getCookies != undefined && getCookies) {
 
         console.log("====== FILE 5 STEP ALREADY VALIDATED. START TO SCHEDULE ======\n");
           // Wait for user input to proceed
-        await new Promise(resolve => process.stdin.once('data', resolve));
-
+        //await new Promise(resolve => process.stdin.once('data', resolve));
          scheduleRequestSetup(targetTime);
         
     } else {
         console.log("====== FILE 5 STEP NOT VALIDATED. START VALIDATION ======\n");
-
-         await new Promise(resolve => process.stdin.once('data', resolve));
+       
+        //await new Promise(resolve => process.stdin.once('data', resolve));
          validateApplication();
     }  
 
@@ -435,13 +434,12 @@ const FinalPayNowV2Request = async()=>{
             }else if (error_reason == "selected slot visa_type and webfile visa_type_id not match") {
                    updateStatusMessage('finalPayMSG',error_reason);
             } else if (error_reason == " Available slot is less than zero" || error_reason == "Available slot is less than zero") {
-                console.log(selected_slot);
+                
                 updateStatusMessage('finalPayMSG', error_reason);
-                 payNowtimeoutId = setTimeout(FinalPayNowV2Request, 2000);
+                payNowtimeoutId = setTimeout(FinalPayNowV2Request, 1500);
             }
             else{
                 updateStatusMessage('finalPayMSG',error_reason);
-                payNowtimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
             }
 
         }else if (resp.status !=="FAIL") {
@@ -452,7 +450,7 @@ const FinalPayNowV2Request = async()=>{
                     
                         isFinalPayNowRequestStop=true;
 
-                        clearTimeout(payNowtimeoutId);
+                        //clearTimeout(payNowtimeoutId);
                         
                         if(typeof resp.data?.order_id !== 'undefined'){
                           
@@ -549,20 +547,18 @@ const getDateTimeSlotRequest = async()=>{
 
                     setItem(selectedSlotKey, selected_slot);
                     
-                    //Stop sending Request
-                    clearTimeout(dateSlotTimeoutId);
-
                     //save Time Slot to api server
                     SaveTimeSlot(resp.slot_times);
 
-                
-                updateStatusMessage('timeSlotMsg', "AvailableSlot :" + selected_slot.availableSlot + " Selected Time: " + selected_slot.time_display, 'success');
+                    //Stop sending Request
+                    clearTimeout(dateSlotTimeoutId);
+
+                updateStatusMessage('timeSlotMsg', "AvailableSlot :" + selected_slot.availableSlot + " Selected Time: " + selected_slot.time_display, '\x1b[32m%s\x1b[0m');
                 
                 if (checkGetTimeSlot && isOtpVerified) {
                     updateStatusMessage('timeSlotMsg','Sending final PayNow request....');
                     FinalPayNowV2Request();
-                }
-                    
+                }           
 
             } else {
                 updateStatusMessage('timeSlotMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
@@ -668,13 +664,13 @@ const sendVerifyOtpRequest = async () => {
                
                 clearTimeout(timeoutId);
                 isOtpVerifyRequestStop = true;
-                isOtpVerified==true;
+                isOtpVerified=true;
                 
                 updateStatusMessage('otpVerifyMsg','OTP Not Found Mobile Number.Request Verified Successfully','success');
        
                 if (checkGetTimeSlot && isOtpVerified) {
 
-                    updateStatusMessage('timeSlotMsg','Sending final PayNow request....');
+                    updateStatusMessage('finalPayMSG','Sending final PayNow request....');
                     FinalPayNowV2Request();
                 }
 
@@ -689,7 +685,7 @@ const sendVerifyOtpRequest = async () => {
     
                 clearTimeout(timeoutId);
                 isOtpVerifyRequestStop = true;
-                isOtpVerified==true;
+                isOtpVerified=true;
                 
                 updateStatusMessage('otpVerifyMsg','OTP Verified Successfully.','success');
        
@@ -1002,35 +998,33 @@ async function completeSteps() {
 }
 
 async function SaveTimeSlot(slotTimes) {
-
-    
     var slotPostData = {
         slot_key: filesInfo.payment[0].ivac.app_key,
         slot_data: slotTimes,
     };
 
     try {
-
         const response = await axios.post('https://api.costbuildpro.xyz/api/save-slot', slotPostData);
         const resp = response.data;
         
-        if (resp.success == true) {
-            console.log("slot Save Response: " + JSON.stringify(resp));
-            updateStatusMessage('FileValidation', `Collected Slot Saved To Storage Successfullly`,'Success');
+        if (resp.success === true) {
+            updateStatusMessage('TimeSlotStore', 'Collected Slot Saved Successfully', '\x1b[32m%s\x1b[0m');
+            return 1;
         }
-
     } catch (error) {
-         // Retry if we get a 504, 502, or 503 error (gateway timeout/server overload)
-
+        // Retry if we get a 504, 502, or 503 error (gateway timeout/server overload)
         if (error.response && [504, 502, 503].includes(error.response.status)) {
-             console.log('Slot Error'+ error + ' Gateway timeout! Resending Request');
+            console.log('Slot Error: ' + error + ' Gateway timeout! Resending Request');
         } else {
-              console.log('Slot Error'+ error + ' Gateway timeout! Resending Request');
+            console.log('Slot Error: ' + error + ' Resending Request');
         }
 
-        setTimeout(SaveTimeSlot, 1000); // Retry after 200ms for other errors
-    };
-};
+        // Use a promise-based delay to retry
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        return await SaveTimeSlot(slotTimes);  // Pass slotTimes for the retry
+    }
+}
+
 
 
 async function getSaveTimeSlot() {
