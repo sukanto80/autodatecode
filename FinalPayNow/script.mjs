@@ -14,18 +14,20 @@ const payNowUrl = `${apiBaseUrl}/slot_pay_now`;
 
 
 // data info variables
-var expected_date = '2024-11-13';
+var expected_date = '2024-11-18';
 
 //Date Release time
 const targetTime = '17:50:00'; // Target time in HH:mm:ss format
+const FiveStepTime = '17:40:00'; //
 
 let application = [
-    { web_file: "BGDDW2357024", applicant_name: "PAKHI RANI ROY" },
-    { web_file: "BGDDW2358A24", applicant_name: "SUKAMAL ROY" }
+     { web_file: "BGDDW2354124", applicant_name: "NEJAM UDDIN" },
+     { web_file: "BGDDW2355324", applicant_name: "FOYEZ AHMED" },
 ];
 
-var mobile="01829006154";
-var email = "pakkna@gmail.com";;
+let mobile="01624389711";
+let email = "pakkna@gmail.com";
+let ReceivedOTP = "358336";
 
 var MainCenterId = 1; // Dhaka 1 , Chittagong 2, Rajshahi 3,Sylhet 4, KHULNA 5
 var VisaCenterId = 17;  //DHaka 17, JESSORE 12, KHULNA 19
@@ -48,18 +50,7 @@ let abortControllers = [];
 
 let validationTimeoutId = null;
 let checkGetTimeSlot = false;
-let ReceivedOTP = "326920";
 let selected_slot = "";
-
-// let selected_slot = {
-//       "id": 151247,
-//       "ivac_id": 17,
-//       "visa_type": 13,
-//       "hour": 10,
-//       "date": "2024-11-13",
-//       "availableSlot": 196,
-//       "time_display": "10:00 - 10:59"
-//     };
 
 // Sample array of objects
 const MainCenterlist = [
@@ -118,10 +109,11 @@ filesInfo.payment[0].otp = ReceivedOTP;
 
 
 //Visa Card Payment Gateway
-let selected_payment = { name: "VISA", slug: "visacard", grand_total: application.length * 800 + application.length*24, link: "https://securepay.sslcommerz.com/gwprocess/v4/image/gw1/visa.png" } 
+//let selected_payment = { name: "VISA", slug: "visacard", grand_total: application.length * 800 + application.length*24, link: "https://securepay.sslcommerz.com/gwprocess/v4/image/gw1/visa.png" } 
 
 //Baksh Payment Gateway
-// let selected_payment={  name: "Bkash", slug: "bkash", grand_total: application.length * 800 + application.length*24, link: "https://securepay.sslcommerz.com/gwprocess/v4/image/gw1/bkash.png" };
+let selected_payment={  name: "Bkash", slug: "bkash", grand_total: application.length * 800 + application.length*24, link: "https://securepay.sslcommerz.com/gwprocess/v4/image/gw1/bkash.png" };
+
 
 
 //Headers for Axios request
@@ -242,65 +234,51 @@ const FinalPayNowV2Request = async()=>{
 
         updateStatusMessage('finalPayMSG',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' );
 
-        if (resp.status ===	"FAIL") {
+        if (resp.status === "FAIL") {
 
-            var error_reason=(typeof resp?.errors !== 'undefined') ? resp.errors: "Pay Now Data response error.Resending...";
+            var error_reason = (typeof resp?.errors !== 'undefined') ? resp.errors : "Pay Now Data response error.Resending...";
             
-            isFinalPayNowRequestStop = true;
-            batchProcessTimeouts.forEach(clearTimeout);
-            // Clear and abort all remaining requests
-            abortControllers.forEach((ctrl) => ctrl.abort());
-            abortControllers = [];
 
-            if (error_reason=="Mobile no is not verified with this requested webfiles") {
-                updateStatusMessage('finalPayMSG',error_reason);
-            }else if (error_reason == "selected slot visa_type and webfile visa_type_id not match") {
-                   updateStatusMessage('finalPayMSG',error_reason);
-            } else if (error_reason == " Available slot is less than zero" || error_reason == "Available slot is less than zero") {
-
-                updateStatusMessage('finalPayMSG', error_reason);      
-                isFinalPayNowRequestStop = false;
-                batchedRequestsSend(FinalPayNowV2Request);
-            }
-            else{
+            if (error_reason.includes("Available slot is less than zero")) {
+                updateStatusMessage('finalPayMSG', error_reason);
+                batchRequestTimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
+                batchProcessTimeouts.push(batchRequestTimeoutId);
+            } else {
+                isFinalPayNowRequestStop = true;
+                batchProcessTimeouts.forEach(clearTimeout);
+                // Clear and abort all remaining requests
+                abortControllers.forEach((ctrl) => ctrl.abort());
+                abortControllers = [];
                 updateStatusMessage('finalPayMSG', error_reason);
             }
 
-        }else if (resp.status !=="FAIL") {
-
-            if(typeof resp.data?.status !== 'undefined'){
-                 
-                if(resp.data.status === 'OK' && typeof resp.data?.url !== 'undefined') {
+        }else if (resp.status=="OK"){
+ 
+                if(resp.url!=="") {
                     
-                        isFinalPayNowRequestStop=true;
+                       isFinalPayNowRequestStop = true;
+                       batchProcessTimeouts.forEach(clearTimeout);
+                       // Clear and abort all remaining requests
+                        abortControllers.forEach((ctrl) => ctrl.abort());
+                        abortControllers = [];
 
                         //clearTimeout(payNowtimeoutId);
                         
-                        if(typeof resp.data?.order_id !== 'undefined'){
+                        if(resp.order_id !== ''){
                           
-                            updateStatusMessage('finalPayMSG','Payment OrderId: '+resp.data.order_id +' Found Successfully','\x1b[32m%s\x1b[0m' );
+                          updateStatusMessage('finalPayMSG','Payment OrderId: '+resp.order_id +' Found Successfully','\x1b[32m%s\x1b[0m' );
                 
                             //localStorage.setItem('last_order_id', resp.data.order_id);
                         }
-                        updateStatusMessage('finalPayMSG URL',resp.data.url+selected_payment.slug,'\x1b[34m\x1b[4m');
-                        // Clear and abort all remaining requests
-                        abortControllers.forEach((ctrl) => ctrl.abort());
-                        abortControllers = [];
                         
                         //open Payment Link
-                        openLink(resp.data.url + selected_payment.slug);
+                        openLink(resp.url + selected_payment.slug);
                 }else{
                     updateStatusMessage('finalPayMSG','Payment gateway not running right now.Resending..');
                     batchRequestTimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
                     batchProcessTimeouts.push(batchRequestTimeoutId);
                 }        
 
-            }else{
-               
-                updateStatusMessage('finalPayMSG','Failed to verify response data! Resending Request...');
-                batchRequestTimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
-                batchProcessTimeouts.push(batchRequestTimeoutId);
-            }   
 
         }else{
             updateStatusMessage('finalPayMSG','Response data invalid! Resending Request...');
@@ -416,8 +394,7 @@ const getDateTimeSlotRequest = async()=>{
                 
                     updateStatusMessage('timeSlotMsg', 'Sending final PayNow request....');
                 
-                
-                    batchedRequestsSend(StepFiveComplete);
+                    batchedRequestsSend(FinalPayNowV2Request);
                     //save Time Slot to api server
                     //SaveTimeSlot(resp.slot_times);
        
@@ -472,7 +449,7 @@ const getDateTimeSlotRequest = async()=>{
 
 const batchedRequestsSend = async (sendRequest)=>{
     
-    const numberOfBatchedRequests = 3; // Total number of requests
+    const numberOfBatchedRequests = 5; // Total number of requests
 
     for (let i = 0; i < numberOfBatchedRequests; i++) {
         const delay = getRandomDelay; // Calculate the delay
@@ -516,7 +493,7 @@ if (getCookies != undefined && getCookies) {
         }else if(selected_slot!=="" && !isStepFiveCompleted) {
             batchedRequestsSend(StepFiveComplete);
         }else {
-          scheduleRequestSetup(targetTime);
+            scheduleRequestSetup(FiveStepTime);
         }
        
         
@@ -690,7 +667,7 @@ async function scheduleRequestSetup(targetTime) {
         console.log(`Current Time in BDT: ${currentTime}`);
         
         // Check if the current time is greater than or equal to the target time
-        if (currentTimeMs >= targetTimeMs) {
+        if (currentTimeMs === targetTimeMs && isStepFiveCompleted) {
             // Your logic for OTP request and slot fetching
 
             clearInterval(interval); // Stop checking after the function is called
@@ -698,6 +675,12 @@ async function scheduleRequestSetup(targetTime) {
             console.log('\n STARTING REQUEST SENDING IN TIME\n'); 
             batchedRequestsSend(getDateTimeSlotRequest);
             
+        } else if (currentTimeMs === targetTimeMs) {
+
+            clearInterval(interval); // Stop checking after the function is called
+
+            console.log('\n STARTING FIVE STEP REQUEST SENDING IN TIME\n'); 
+            batchedRequestsSend(StepFiveComplete);
         } else {
             console.clear();
             console.log(`Date Release Time Not Yet ... Current Time: ${currentTime}`);
@@ -751,7 +734,7 @@ async function completeSteps() {
                     }else if(selected_slot!=="" && !isStepFiveCompleted) {
                         batchedRequestsSend(StepFiveComplete);
                     }else {
-                        scheduleRequestSetup(targetTime);
+                         scheduleRequestSetup(FiveStepTime);
                     }
                 }
             } else {
@@ -788,10 +771,9 @@ async function StepFiveComplete() {
                 abortControllers = [];
                 batchProcessTimeouts.forEach(clearTimeout);
 
-                //send Final Request
-                batchedRequestsSend(FinalPayNowV2Request);
-
                 updateStatusMessage('StepFiveValidation', 'File Validation Step 5 Completed successfully', 'success');
+
+                scheduleRequestSetup(targetTime)
 
             } else {
                 updateStatusMessage('StepFiveValidation', `Step 5 failed. Response: ${response}`);
@@ -834,40 +816,12 @@ async function StepFiveComplete() {
         }      
 }
 
-async function SaveTimeSlot(slotTimes) {
-    var slotPostData = {
-        slot_key: filesInfo.payment[0].web_id,
-        slot_data: slotTimes,
-    };
-
-    try {
-        const response = await axios.post('https://api.costbuildpro.xyz/api/save-slot', slotPostData);
-        const resp = response.data;
-        
-        if (resp.success === true) {
-            updateStatusMessage('TimeSlotStore', 'Collected Slot Saved Successfully', '\x1b[32m%s\x1b[0m');
-            return 1;
-        }
-    } catch (error) {
-        // Retry if we get a 504, 502, or 503 error (gateway timeout/server overload)
-        if (error.response && [504, 502, 503].includes(error.response.status)) {
-            console.log('Slot Error: ' + error + ' Gateway timeout! Resending Request');
-        } else {
-            console.log('Slot Error: ' + error + ' Resending Request');
-        }
-
-        // Use a promise-based delay to retry
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        return await SaveTimeSlot(slotTimes);  // Pass slotTimes for the retry
-    }
-}
-
 
 //setItem(expected_date+'_slot',slot)
 function setItem(key, value) {
     const data = getStorage();
     data[key] = value;
-    fs.writeFileSync('payNowStorage.json', JSON.stringify(data));
+    fs.writeFileSync('localStorage.json', JSON.stringify(data));
 }
 
 // Get data
@@ -879,7 +833,7 @@ function getItem(key) {
 // Get all storage
 function getStorage() {
     try {
-        return JSON.parse(fs.readFileSync('payNowStorage.json', 'utf8'));
+        return JSON.parse(fs.readFileSync('localStorage.json', 'utf8'));
     } catch (err) {
         return {};
     }
@@ -887,10 +841,10 @@ function getStorage() {
 
 // Function to open a link
 function openLink(url) {
-    const startCommand = process.platform === 'win32' ? 'start' :
+    const startCommand = process.platform === 'win32' ? 'start ""' :
                          process.platform === 'darwin' ? 'open' : 'xdg-open';
 
-    exec(`${startCommand} ${url}`, (err) => {
+    exec(`${startCommand} "${url}"`, (err) => {
         if (err) {
             console.error('Failed to open the link:', err);
         } else {
