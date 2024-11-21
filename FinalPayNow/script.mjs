@@ -14,20 +14,20 @@ const payNowUrl = `${apiBaseUrl}/slot_pay_now`;
 
 
 // data info variables
-var expected_date = '2024-11-18';
+var expected_date = '2024-11-24';
 
 //Date Release time
-const targetTime = '17:50:00'; // Target time in HH:mm:ss format
-const FiveStepTime = '17:40:00'; //
+const targetTime = '16:00:00'; // Target time in HH:mm:ss format
+const FiveStepTime = '17:52:00'; //
 
 let application = [
-     { web_file: "BGDDW2354124", applicant_name: "NEJAM UDDIN" },
-     { web_file: "BGDDW2355324", applicant_name: "FOYEZ AHMED" },
-];
+    { web_file: "BGDDW23BF824", applicant_name: "AMITAVA BASAK" },
+    { web_file: "BGDDW23BD824", applicant_name: "SUSHAMA BASAK" },
+];   
 
-let mobile="01624389711";
-let email = "pakkna@gmail.com";
-let ReceivedOTP = "358336";
+var mobile="01624389711";
+var email = "shuvo.ezzyr@gmail.com";
+let ReceivedOTP = "378528";
 
 var MainCenterId = 1; // Dhaka 1 , Chittagong 2, Rajshahi 3,Sylhet 4, KHULNA 5
 var VisaCenterId = 17;  //DHaka 17, JESSORE 12, KHULNA 19
@@ -51,7 +51,6 @@ let abortControllers = [];
 let validationTimeoutId = null;
 let checkGetTimeSlot = false;
 let selected_slot = "";
-
 // Sample array of objects
 const MainCenterlist = [
     { id: 1, c_name: "Dhaka", prefix: "D" },
@@ -61,16 +60,15 @@ const MainCenterlist = [
     { id: 5, c_name: "Khulna", prefix: "K" }
 ];
 const VisaCenterList = [
-    { id: 12, center_info_id: 1, ivac_name: "IVAC, JESSORE", prefix: "D", visa_fee: "800.00",app_key: "IVACJESSORE"},
-    { id: 17, center_info_id: 1, ivac_name: "IVAC , DHAKA", prefix: "D", visa_fee: "800.00", app_key: "IVACDHAKA" },
-    { id: 18, center_info_id: 3, ivac_name: "IVAC , RAJSHAHI", prefix: "R", visa_fee: "800.00", app_key: "IVACRAJSHAHI" },
-    { id: 19, center_info_id: 5, ivac_name: "IVAC, KHULNA", prefix: "K", visa_fee: "800.00", app_key: "IVACKHULNA" },
-    { id: 20, center_info_id: 7, ivac_name: "IVAC , SYLHET", prefix: "S", visa_fee: "800.00", app_key: "IVACSYLHET" },
-    { id: 21, center_info_id: 9, ivac_name: "IVAC , CHITTAGONG", prefix: "C", visa_fee: "800.00", app_key: "IVACCHITTAGONG" },
-    { id: 22, center_info_id: 11, ivac_name: "IVAC , BARISAL", prefix: "B", visa_fee: "800.00", app_key: "IVACBARISAL" },
-    { id: 23, center_info_id: 13, ivac_name: "IVAC , COMILLA", prefix: "M", visa_fee: "800.00", app_key: "IVACCOMILLA" }
+    { id: 12, center_info_id: 1, ivac_name: "IVAC, JESSORE", prefix: "D", visa_fee: "800.00", charge: "3", new_visa_fee: "800.00", old_visa_fee: "800.00", app_key: "IVACJESSORE" },
+    { id: 17, center_info_id: 1, ivac_name: "IVAC, Dhaka (JFP)", prefix: "D", visa_fee: "800.00", charge: "3", new_visa_fee: "800.00", old_visa_fee: "800.00", app_key: "IVACJFP" },
+    { id: 18, center_info_id: 3, ivac_name: "IVAC, RAJSHAHI", prefix: "R", visa_fee: "800.00", charge: "3", new_visa_fee: "800.00", old_visa_fee: "800.00", app_key: "IVACRAJSHAHI" },
+    { id: 19, center_info_id: 5, ivac_name: "IVAC, KHULNA", prefix: "K", visa_fee: "800.00", charge: "3", new_visa_fee: "800.00", old_visa_fee: "800.00", app_key: "IVACKHULNA" },
+    { id: 20, center_info_id: 7, ivac_name: "IVAC, SYLHET", prefix: "S", visa_fee: "800.00", charge: "3", new_visa_fee: "800.00", old_visa_fee: "800.00", app_key: "IVACSYLHET" },
+    { id: 21, center_info_id: 9, ivac_name: "IVAC, CHITTAGONG", prefix: "C", visa_fee: "800.00", charge: "3", new_visa_fee: "800.00", old_visa_fee: "800.00", app_key: "IVACCHITTAGONG" },
+    { id: 22, center_info_id: 11, ivac_name: "IVAC, BARISAL", prefix: "B", visa_fee: "800.00", charge: "3", new_visa_fee: "800.00", old_visa_fee: "800.00", app_key: "IVACBARISAL" },
+    { id: 23, center_info_id: 13, ivac_name: "IVAC, COMILLA", prefix: "M", visa_fee: "800.00", charge: "3", new_visa_fee: "800.00", old_visa_fee: "800.00", app_key: "IVACCOMILLA" }
 ];
-
 // VIsa Type array of objects}
 const VisaTypelist = [
     { id: 3, type_name: "TOURIST VISA", order: 1, is_active: 1 },
@@ -88,12 +86,15 @@ let filesInfo = {
 application.forEach(item => {
     // Create a copy of the item and add an extra key, e.g., 'status'
     let newItem = {
-            web_id: item.web_file,
+         web_id: item.web_file,
             web_id_repeat: item.web_file,
             name: item.applicant_name,
+            captcha: "",
+            passport: "",
             phone: mobile,
             email: email,
             amount: "800.00",
+            amountChangeData: { allow_old_amount_until_new_date: 2, max_notification_count: 0, old_visa_fees: "800.00", notice: false, new_visa_fee: "800.00" },
             center: getObjectByName(MainCenterlist, MainCenterId), // Dhaka 1 , KHULNA 5
             is_open: "true",
             ivac:  getObjectByName(VisaCenterList, VisaCenterId), //DHaka 17, kHULNA 19
@@ -169,6 +170,7 @@ let selectedSlotKey=filesInfo.payment[0].web_id+'_'+expected_date+'_slot';
 let cookiesKey = filesInfo.payment[0].web_id + '_'+expected_date + '_cookies';
 let validationKey = filesInfo.payment[0].web_id + '_' + expected_date + '_stepVerify';
 let StepFiveCheckKey = filesInfo.payment[0].web_id + '_' + expected_date + '_stepFive';
+let FinalMsgKey = filesInfo.payment[0].web_id + '_' + expected_date + '_finalResponse';
 
 let checkSelectedSlot=getItem(selectedSlotKey);
 let getCookies = getItem(cookiesKey);
@@ -232,60 +234,56 @@ const FinalPayNowV2Request = async()=>{
 
         const resp = response.data;
 
-        updateStatusMessage('finalPayMSG',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' );
-
+        updateStatusMessage('finalPayMSG', JSON.stringify(resp, null, 2), '\x1b[32m%s\x1b[0m');
+        
         if (resp.status === "FAIL") {
-
-            var error_reason = (typeof resp?.errors !== 'undefined') ? resp.errors : "Pay Now Data response error.Resending...";
-            
+            const error_reason = resp?.errors?.toString() ?? "Pay Now Data response error.";
 
             if (error_reason.includes("Available slot is less than zero")) {
                 updateStatusMessage('finalPayMSG', error_reason);
                 batchRequestTimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
                 batchProcessTimeouts.push(batchRequestTimeoutId);
             } else {
+                    
                 isFinalPayNowRequestStop = true;
                 batchProcessTimeouts.forEach(clearTimeout);
-                // Clear and abort all remaining requests
+
+                    // Clear and abort all remaining requests
                 abortControllers.forEach((ctrl) => ctrl.abort());
                 abortControllers = [];
+                    
                 updateStatusMessage('finalPayMSG', error_reason);
             }
 
-        }else if (resp.status=="OK"){
- 
-                if(resp.url!=="") {
-                    
-                       isFinalPayNowRequestStop = true;
-                       batchProcessTimeouts.forEach(clearTimeout);
-                       // Clear and abort all remaining requests
-                        abortControllers.forEach((ctrl) => ctrl.abort());
-                        abortControllers = [];
+        } else if (resp.status !== "FAIL") {
 
-                        //clearTimeout(payNowtimeoutId);
-                        
-                        if(resp.order_id !== ''){
-                          
-                          updateStatusMessage('finalPayMSG','Payment OrderId: '+resp.order_id +' Found Successfully','\x1b[32m%s\x1b[0m' );
-                
-                            //localStorage.setItem('last_order_id', resp.data.order_id);
-                        }
-                        
-                        //open Payment Link
-                        openLink(resp.url + selected_payment.slug);
-                }else{
-                    updateStatusMessage('finalPayMSG','Payment gateway not running right now.Resending..');
-                    batchRequestTimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
-                    batchProcessTimeouts.push(batchRequestTimeoutId);
-                }        
+            setItem(FinalMsgKey, resp);
 
+            if (resp.status=="OK" && resp.url !== "") {
+                isFinalPayNowRequestStop = true;
+                batchProcessTimeouts.forEach(clearTimeout);
 
-        }else{
-            updateStatusMessage('finalPayMSG','Response data invalid! Resending Request...');
+                 // Clear and abort all remaining requests
+                 abortControllers.forEach((ctrl) => ctrl.abort());
+                 abortControllers = [];
+
+                if (resp.order_id !== '') {
+                    updateStatusMessage('finalPayMSG', `Payment OrderId: ${resp.order_id} Found Successfully`, '\x1b[32m%s\x1b[0m');
+                }
+
+                openLink(resp.url + selected_payment.slug);
+                updateStatusMessage('finalPayMSG', 'PayNow Link Found...');
+            } else {
+                console.warn('Payment gateway not running right now. Retrying...');
+                batchRequestTimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
+                batchProcessTimeouts.push(batchRequestTimeoutId);
+            }
+
+        } else {
+            console.warn('Response data invalid! Resending request...');
             batchRequestTimeoutId = setTimeout(FinalPayNowV2Request, getRandomDelay);
             batchProcessTimeouts.push(batchRequestTimeoutId);
         }
-
         
     } catch (error) {
 
@@ -347,6 +345,7 @@ const getDateTimeSlotRequest = async()=>{
     }
 
     const timeSlotPostData = qs.stringify({
+        _token: csrfToken,
         apiKey: apiKey,
         action: 'generateSlotTime',
         amount: '10.00',
@@ -449,7 +448,7 @@ const getDateTimeSlotRequest = async()=>{
 
 const batchedRequestsSend = async (sendRequest)=>{
     
-    const numberOfBatchedRequests = 5; // Total number of requests
+    const numberOfBatchedRequests = 1; // Total number of requests
 
     for (let i = 0; i < numberOfBatchedRequests; i++) {
         const delay = getRandomDelay; // Calculate the delay
@@ -706,7 +705,7 @@ async function validateApplication() {
         if (!isPaymentComplete) {
             console.log('Payment Check Response:', response.data);
              updateStatusMessage('FileValidation', `File Verify Step 1 Completed successfully`);
-            completeSteps(); // Ensure to await the completion of steps
+             completeSteps(); // Ensure to await the completion of steps
         }
     } catch (error) {
         // Handle error
@@ -729,12 +728,10 @@ async function completeSteps() {
                 if (step === 4) {
                     setItem(validationKey, 1);
                     
-                    if (selected_slot!=="" && isStepFiveCompleted==true) {
+                    if (selected_slot!=="" && isStepFiveCompleted) {
                         batchedRequestsSend(FinalPayNowV2Request);
-                    }else if(selected_slot!=="" && !isStepFiveCompleted) {
-                        batchedRequestsSend(StepFiveComplete);
-                    }else {
-                         scheduleRequestSetup(FiveStepTime);
+                    }else{
+                        scheduleRequestSetup(FiveStepTime);
                     }
                 }
             } else {
@@ -773,7 +770,7 @@ async function StepFiveComplete() {
 
                 updateStatusMessage('StepFiveValidation', 'File Validation Step 5 Completed successfully', 'success');
 
-                scheduleRequestSetup(targetTime)
+                scheduleRequestSetup(targetTime);
 
             } else {
                 updateStatusMessage('StepFiveValidation', `Step 5 failed. Response: ${response}`);
