@@ -14,20 +14,22 @@ const payNowUrl = `${apiBaseUrl}/slot_pay_now`;
 
 
 // data info variables
-var expected_date = '2024-11-24';
+var expected_date = '2024-12-01';
 
 //Date Release time
-const targetTime = '16:00:00'; // Target time in HH:mm:ss format
-const FiveStepTime = '17:52:00'; //
+const targetTime = '12:58:30'; // Target time in HH:mm:ss format
+const FiveStepTime = '12:50:00'; //
 
-let application = [
-    { web_file: "BGDDW23BF824", applicant_name: "AMITAVA BASAK" },
-    { web_file: "BGDDW23BD824", applicant_name: "SUSHAMA BASAK" },
+    let application = [
+        { web_file: "BGDDW2A86B24", applicant_name: "FOYEZ AHMED" },
+        { web_file: "BGDDW2A82824", applicant_name: "NEJAM UDDIN" },
+        { web_file: "BGDDW2AC9F24", applicant_name: "SUPPRIYA BISWAS" },
+
 ];   
 
-var mobile="01624389711";
-var email = "shuvo.ezzyr@gmail.com";
-let ReceivedOTP = "378528";
+var mobile="01616608278";
+var email = "pakkna@gmail.com";
+let ReceivedOTP = "639159";
 
 var MainCenterId = 1; // Dhaka 1 , Chittagong 2, Rajshahi 3,Sylhet 4, KHULNA 5
 var VisaCenterId = 17;  //DHaka 17, JESSORE 12, KHULNA 19
@@ -50,7 +52,15 @@ let abortControllers = [];
 
 let validationTimeoutId = null;
 let checkGetTimeSlot = false;
-let selected_slot = "";
+let selected_slot = {
+      "id": 157379,
+      "ivac_id": 17,
+      "visa_type": 13,
+      "hour": 10,
+      "date": "2024-12-01",
+      "availableSlot": 300,
+      "time_display": "10:00 - 10:59"
+    };
 // Sample array of objects
 const MainCenterlist = [
     { id: 1, c_name: "Dhaka", prefix: "D" },
@@ -86,7 +96,7 @@ let filesInfo = {
 application.forEach(item => {
     // Create a copy of the item and add an extra key, e.g., 'status'
     let newItem = {
-         web_id: item.web_file,
+            web_id: item.web_file,
             web_id_repeat: item.web_file,
             name: item.applicant_name,
             captcha: "",
@@ -174,6 +184,7 @@ let FinalMsgKey = filesInfo.payment[0].web_id + '_' + expected_date + '_finalRes
 
 let checkSelectedSlot=getItem(selectedSlotKey);
 let getCookies = getItem(cookiesKey);
+let isvalidated = getItem(validationKey);
 isStepFiveCompleted= getItem(StepFiveCheckKey); 
 
 
@@ -394,9 +405,6 @@ const getDateTimeSlotRequest = async()=>{
                     updateStatusMessage('timeSlotMsg', 'Sending final PayNow request....');
                 
                     batchedRequestsSend(FinalPayNowV2Request);
-                    //save Time Slot to api server
-                    //SaveTimeSlot(resp.slot_times);
-       
 
             } else {
                 updateStatusMessage('timeSlotMsg',JSON.stringify(resp, null, 2),'\x1b[32m%s\x1b[0m' ); //log response data
@@ -418,6 +426,8 @@ const getDateTimeSlotRequest = async()=>{
 
             } else if (statusCode === 500) {  
                 updateStatusMessage('timeSlotMsg', `${statusCode} Request Data Error! Check data.`);
+                batchRequestTimeoutId = setTimeout(getDateTimeSlotRequest, 10000);
+                batchProcessTimeouts.push(batchRequestTimeoutId);
             }else if (statusCode === 429) {  
                 updateStatusMessage('timeSlotMsg', `${statusCode} Request Rate Limit Excided.`);
                 console.log("\n====== Request Rate Limit Excided . Please Change Your IP Then Press Enter ======\n");
@@ -448,7 +458,7 @@ const getDateTimeSlotRequest = async()=>{
 
 const batchedRequestsSend = async (sendRequest)=>{
     
-    const numberOfBatchedRequests = 1; // Total number of requests
+    const numberOfBatchedRequests = 5; // Total number of requests
 
     for (let i = 0; i < numberOfBatchedRequests; i++) {
         const delay = getRandomDelay; // Calculate the delay
@@ -479,20 +489,22 @@ if (getCookies != undefined && getCookies) {
     
     console.log("====== COOKIES & API KEY  RETRIEVED FROM STORAGE ======\n");
 
-    let isvalidated = getItem(validationKey);
-
     if (isvalidated != undefined && isvalidated) {
 
         console.log("====== FILE 5 STEP ALREADY VALIDATED. START TO SCHEDULE ======\n");
           // Wait for user input to proceed
         //await new Promise(resolve => process.stdin.once('data', resolve));
 
-        if (selected_slot!=="" && isStepFiveCompleted==true) {
+        if (selected_slot!=="" && isStepFiveCompleted) {
            batchedRequestsSend(FinalPayNowV2Request);
-        }else if(selected_slot!=="" && !isStepFiveCompleted) {
-            batchedRequestsSend(StepFiveComplete);
-        }else {
+        } else if (selected_slot == "" && isStepFiveCompleted) {
+            batchedRequestsSend(getDateTimeSlotRequest);
+        
+        } else if (selected_slot !== "" && !isStepFiveCompleted) {
             scheduleRequestSetup(FiveStepTime);
+           
+        } else {
+            batchedRequestsSend(StepFiveComplete);
         }
        
         
@@ -666,15 +678,21 @@ async function scheduleRequestSetup(targetTime) {
         console.log(`Current Time in BDT: ${currentTime}`);
         
         // Check if the current time is greater than or equal to the target time
-        if (currentTimeMs === targetTimeMs && isStepFiveCompleted) {
-            // Your logic for OTP request and slot fetching
+        if (currentTimeMs >= targetTimeMs && isStepFiveCompleted && selected_slot=="") {
+
+            clearInterval(interval); // Stop checking after the function is called
+
+            console.log('\n STARTING REQUEST SENDING IN TIME\n');
+            batchedRequestsSend(getDateTimeSlotRequest);
+            
+        }else if (currentTimeMs >= targetTimeMs && isStepFiveCompleted && selected_slot!==""){
 
             clearInterval(interval); // Stop checking after the function is called
 
             console.log('\n STARTING REQUEST SENDING IN TIME\n'); 
-            batchedRequestsSend(getDateTimeSlotRequest);
+            batchedRequestsSend(FinalPayNowV2Request);
             
-        } else if (currentTimeMs === targetTimeMs) {
+        } else if (currentTimeMs >= targetTimeMs && !isStepFiveCompleted) {
 
             clearInterval(interval); // Stop checking after the function is called
 
@@ -769,6 +787,7 @@ async function StepFiveComplete() {
                 batchProcessTimeouts.forEach(clearTimeout);
 
                 updateStatusMessage('StepFiveValidation', 'File Validation Step 5 Completed successfully', 'success');
+
 
                 scheduleRequestSetup(targetTime);
 
